@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum untuk peran pengguna
+enum Role {
+  MIDWIFE
+  PATIENT
+}
+
+// Tabel untuk semua pengguna (bidan dan pasien)
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  role      Role
+  midwife   Midwife?
+  patient   Patient?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  notifications Notification[] // Relasi ke banyak notifikasi
+}
+
+// Tabel untuk notifikasi
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String // ID pengguna yang menerima notifikasi
+  user      User      @relation(fields: [userId], references: [id]) // Relasi ke tabel User
+  message   String // Isi pesan notifikasi
+  isRead    Boolean   @default(false) // Status notifikasi (sudah dibaca atau belum)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// Tabel untuk informasi bidan
+model Midwife {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  name      String
+  patients  Patient[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// Tabel untuk informasi ibu hamil (pasien)
+model Patient {
+  id                 String         @id @default(uuid())
+  userId             String         @unique
+  user               User           @relation(fields: [userId], references: [id])
+  midwifeId          String
+  midwife            Midwife        @relation(fields: [midwifeId], references: [id])
+  name               String
+  husbandName        String
+  age                Int
+  phoneNumber        String
+  address            String
+  gestationalAge     Int
+  pregnancyOrder     Int
+  hasMiscarriage     Boolean
+  miscarriageCount   Int?
+  lastMenstrualPeriod DateTime
+  estimatedDueDate   DateTime
+  lastHemoglobin     Float
+  dailyChecks        DailyCheck[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+// Tabel untuk catatan daily check ibu hamil
+model DailyCheck {
+  id        String    @id @default(uuid())
+  patientId String
+  patient   Patient   @relation(fields: [patientId], references: [id])
+  date      DateTime  @default(now())
+  takenMedication Boolean
+  photoUrl  String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// Tabel untuk materi edukasi
+model EducationalMaterial {
+  id        String    @id @default(uuid())
+  title     String
+  content   String
+  videoUrl1 String?
+  videoUrl2 String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}

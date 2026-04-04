@@ -1,0 +1,29 @@
+
+
+:root {
+  --alma-green: #4CAF50;
+  --alma-pink: #FFC0CB;
+}
+
+body {
+  background-color: var(--alma-green);
+  color: #333; /* Warna teks default */
+}
+
+.navbar-alma {
+  background-color: var(--alma-pink) !important;
+}
+
+.navbar-alma .navbar-brand,
+.navbar-alma .nav-link {
+  color: var(--alma-green) !important;
+}
+
+.navbar-alma .nav-link.active {
+  font-weight: bold;
+}
+
+.footer-alma {
+  background-color: var(--alma-pink) !important;
+  color: var(--alma-green) !important;
+}
