@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Container, Row, Col, Card, Table, Badge, Spinner, Alert, Button, Modal, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Table, Badge, Spinner, Alert, Button, Modal, Form, InputGroup } from 'react-bootstrap';
 import Link from 'next/link';
 
 interface MidwifeEntry {
@@ -53,6 +53,8 @@ const SuperAdminDashboardPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPatientsModal, setShowPatientsModal] = useState(false);
   const [selectedMidwife, setSelectedMidwife] = useState<MidwifeEntry | null>(null);
   const [patients, setPatients] = useState<PatientEntry[]>([]);
@@ -347,56 +349,116 @@ const SuperAdminDashboardPage = () => {
             </Alert>
           ) : (
             <Form onSubmit={handleSubmitBidan}>
-              <Form.Group className="mb-3">
-                <Form.Label>Nama Lengkap Bidan</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleFormChange}
-                  placeholder="Masukkan nama lengkap"
-                  required
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Username</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleFormChange}
-                  placeholder="Masukkan username"
-                  required
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Password</Form.Label>
-                <Form.Control
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleFormChange}
-                  placeholder="Masukkan password"
-                  required
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Konfirmasi Password</Form.Label>
-                <Form.Control
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleFormChange}
-                  placeholder="Masukkan konfirmasi password"
-                  required
-                />
-              </Form.Group>
-
+              <Row className="g-4">
+                <Col lg={6}>
+                  <div style={{ backgroundColor: '#E8F5E9', borderRadius: '10px' }} className="p-3 h-100">
+                    <h6 className="fw-bold mb-3 text-alma-green">
+                      <i className="bi bi-person-badge me-2"></i>
+                      Akun Bidan
+                    </h6>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-medium small">Nama Lengkap</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text className="bg-white" style={{ border: '2px solid #E0E0E0' }}>
+                          <i className="bi bi-person" style={{ color: '#4CAF50' }}></i>
+                        </InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleFormChange}
+                          placeholder="Nama lengkap bidan"
+                          required
+                          minLength={2}
+                          style={{ border: '2px solid #E0E0E0' }}
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-medium small">Username</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text className="bg-white" style={{ border: '2px solid #E0E0E0' }}>
+                          <i className="bi bi-at" style={{ color: '#4CAF50' }}></i>
+                        </InputGroup.Text>
+                        <Form.Control
+                          type="text"
+                          name="username"
+                          value={formData.username}
+                          onChange={handleFormChange}
+                          placeholder="Username"
+                          required
+                          minLength={4}
+                          pattern="^[a-zA-Z0-9_]+$"
+                          style={{ border: '2px solid #E0E0E0' }}
+                        />
+                      </InputGroup>
+                      <Form.Text className="text-muted small">Hanya huruf, angka, underscore</Form.Text>
+                    </Form.Group>
+                  </div>
+                </Col>
+                <Col lg={6}>
+                  <div style={{ backgroundColor: '#FFF3E0', borderRadius: '10px' }} className="p-3 h-100">
+                    <h6 className="fw-bold mb-3 text-warning">
+                      <i className="bi bi-lock me-2"></i>
+                      Kata Sandi
+                    </h6>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-medium small">Password</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text className="bg-white" style={{ border: '2px solid #E0E0E0' }}>
+                          <i className="bi bi-lock" style={{ color: '#FF9800' }}></i>
+                        </InputGroup.Text>
+                        <Form.Control
+                          type={showPassword ? 'text' : 'password'}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleFormChange}
+                          placeholder="Password"
+                          required
+                          minLength={8}
+                          style={{ border: '2px solid #E0E0E0' }}
+                        />
+                        <Button
+                          variant="outline-secondary"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{ border: '2px solid #E0E0E0', borderLeft: 'none' }}
+                        >
+                          <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                        </Button>
+                      </InputGroup>
+                      <Form.Text className="text-muted small">Min 8 karakter</Form.Text>
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-medium small">Konfirmasi Password</Form.Label>
+                      <InputGroup>
+                        <InputGroup.Text className="bg-white" style={{ border: '2px solid #E0E0E0' }}>
+                          <i className="bi bi-lock-fill" style={{ color: '#FF9800' }}></i>
+                        </InputGroup.Text>
+                        <Form.Control
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleFormChange}
+                          placeholder="Ulangi password"
+                          required
+                          minLength={8}
+                          style={{ border: '2px solid #E0E0E0' }}
+                        />
+                        <Button
+                          variant="outline-secondary"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          style={{ border: '2px solid #E0E0E0', borderLeft: 'none' }}
+                        >
+                          <i className={`bi ${showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                        </Button>
+                      </InputGroup>
+                    </Form.Group>
+                  </div>
+                </Col>
+              </Row>
               {submitError && (
-                <Alert variant="danger" className="py-2">
+                <Alert variant="danger" className="mt-3">
+                  <i className="bi bi-exclamation-triangle-fill me-2"></i>
                   {submitError}
                 </Alert>
               )}
