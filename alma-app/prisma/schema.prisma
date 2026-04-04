@@ -20,25 +20,32 @@ enum Role {
 // Tabel untuk semua pengguna (bidan dan pasien)
 model User {
   id        String    @id @default(uuid())
-  email     String    @unique
+  username  String    @unique
   password  String
   role      Role
   midwife   Midwife?
   patient   Patient?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  notifications Notification[] // Relasi ke banyak notifikasi
+  notifications Notification[]
+
+  @@index([username])
+  @@index([role])
 }
 
 // Tabel untuk notifikasi
 model Notification {
   id        String    @id @default(uuid())
-  userId    String // ID pengguna yang menerima notifikasi
-  user      User      @relation(fields: [userId], references: [id]) // Relasi ke tabel User
-  message   String // Isi pesan notifikasi
-  isRead    Boolean   @default(false) // Status notifikasi (sudah dibaca atau belum)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  message   String
+  isRead    Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 // Tabel untuk informasi bidan
@@ -50,6 +57,9 @@ model Midwife {
   patients  Patient[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([name])
 }
 
 // Tabel untuk informasi ibu hamil (pasien)
@@ -74,6 +84,13 @@ model Patient {
   dailyChecks        DailyCheck[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([midwifeId])
+  @@index([name])
+  @@index([phoneNumber])
+  @@index([gestationalAge])
+  @@index([estimatedDueDate])
 }
 
 // Tabel untuk catatan daily check ibu hamil
@@ -87,6 +104,10 @@ model DailyCheck {
   notes     String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([patientId])
+  @@index([date])
+  @@index([takenMedication])
 }
 
 // Tabel untuk materi edukasi
@@ -98,4 +119,7 @@ model EducationalMaterial {
   videoUrl2 String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([title])
+  @@index([createdAt])
 }

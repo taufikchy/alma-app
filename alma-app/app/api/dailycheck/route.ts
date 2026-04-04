@@ -59,6 +59,26 @@ export async function GET(request: Request) {
   }
 
   try {
+    const midwife = await prisma.midwife.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!midwife) {
+      return NextResponse.json({ message: 'Midwife profile not found' }, { status: 404 });
+    }
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      return NextResponse.json({ message: 'Patient not found' }, { status: 404 });
+    }
+
+    if (patient.midwifeId !== midwife.id) {
+      return NextResponse.json({ message: 'You do not have access to this patient data' }, { status: 403 });
+    }
+
     const dailyChecks = await prisma.dailyCheck.findMany({
       where: { patientId },
       orderBy: { date: 'desc' },

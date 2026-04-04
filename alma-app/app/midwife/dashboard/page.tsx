@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Container, Card, Table, Alert, Spinner, Button } from 'react-bootstrap';
+import { Container, Card, Table, Alert, Spinner, Button, Badge, Modal } from 'react-bootstrap';
 import Link from 'next/link';
 
 interface Patient {
@@ -30,6 +30,8 @@ const MidwifeDashboardPage = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -55,77 +57,261 @@ const MidwifeDashboardPage = () => {
     fetchPatients();
   }, [session, status, router]);
 
+  const handleShowDetail = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedPatient(null);
+  };
+
+  const getHemoglobinStatus = (hb: number) => {
+    if (hb < 7) return { variant: 'danger', text: 'Rendah' };
+    if (hb >= 7 && hb < 11) return { variant: 'warning', text: 'Kurang' };
+    return { variant: 'success', text: 'Normal' };
+  };
+
   if (status === 'loading' || loading) {
-    return <Layout><p className="text-center mt-5"><Spinner animation="border" /> Loading...</p></Layout>;
+    return (
+      <Layout>
+        <div className="text-center mt-5">
+          <Spinner animation="border" />
+          <p className="mt-3">Loading...</p>
+        </div>
+      </Layout>
+    );
   }
 
   if (!session || !session.user || session.user.role !== 'MIDWIFE') {
-    return null; // Redirect handled by useEffect
+    return null;
   }
 
   return (
     <Layout>
-      <Container className="mt-5">
-        <h1 className="mb-4">Dashboard Bidan</h1>
-        <div className="d-flex justify-content-end mb-3">
-          <Link href="/midwife/register-patient" passHref>
-            <Button variant="success">Daftarkan Pasien Baru</Button>
+      <div style={{ backgroundColor: '#FFF5F8', minHeight: '100vh' }} className="py-4">
+        <Container>
+          <Card className="border-0 shadow-sm mb-4" style={{ borderRadius: '12px' }}>
+            <Card.Body className="py-3 px-4">
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                  <h4 className="mb-1 fw-bold text-alma-green">
+                    <i className="bi bi-clipboard2-pulse me-2"></i>
+                    Dashboard Bidan
+                  </h4>
+                  <p className="text-muted mb-0 small">Kelola data ibu hamil terdaftar</p>
+                </div>
+                <Link href="/midwife/register-patient">
+                  <Button className="btn-alma-primary text-center">
+                    <i className="bi bi-person-plus me-2"></i>
+                    Daftarkan Pasien Baru
+                  </Button>
+                </Link>
+              </div>
+            </Card.Body>
+          </Card>
+
+          <Card className="border-0 shadow-sm" style={{ borderRadius: '12px', overflow: 'hidden' }}>
+            <div className="card-header-alma">
+              <i className="bi bi-people-fill fs-4"></i>
+              <div>
+                <h5 className="mb-0 fw-bold">Daftar Ibu Hamil Terdaftar</h5>
+                <small className="text-white-50">Total: {patients.length} pasien</small>
+              </div>
+            </div>
+            <Card.Body className="p-4">
+              {error && (
+                <Alert variant="danger" className="m-3 rounded-3 text-center">{error}</Alert>
+              )}
+              {patients.length === 0 ? (
+                <div className="empty-state">
+                  <i className="bi bi-inbox"></i>
+                  <p className="text-muted mt-2">Belum ada ibu hamil yang terdaftar</p>
+                  <Link href="/midwife/register-patient">
+                    <Button variant="success" size="sm" className="text-center">
+                      <i className="bi bi-plus-circle me-2"></i>
+                      Daftarkan Sekarang
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <Table bordered hover className="mb-0 align-middle table-alma" style={{ fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr>
+                        <th className="text-center">No</th>
+                        <th className="text-center">Nama</th>
+                        <th className="text-center">Kontak</th>
+                        <th className="text-center">Alamat</th>
+                        <th className="text-center">Umur</th>
+                        <th className="text-center">Nama Suami</th>
+                        <th className="text-center">HPHT</th>
+                        <th className="text-center">HPL</th>
+                        <th className="text-center">Usia Kehamilan</th>
+                        <th className="text-center">Kehamilan Ke</th>
+                        <th className="text-center">HB</th>
+                        <th className="text-center">Keguguran</th>
+                        <th className="text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {patients.map((patient, index) => {
+                        const hbStatus = getHemoglobinStatus(patient.lastHemoglobin);
+                        return (
+                          <tr key={patient.id}>
+                            <td className="text-center">{index + 1}</td>
+                            <td className="text-start fw-semibold text-alma-green">{patient.name}</td>
+                            <td className="text-start">{patient.phoneNumber}</td>
+                            <td className="text-start">{patient.address}</td>
+                            <td className="text-center">{patient.age}</td>
+                            <td className="text-start">{patient.husbandName || '-'}</td>
+                            <td className="text-center">
+                              {new Date(patient.lastMenstrualPeriod).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </td>
+                            <td className="text-center">
+                              {new Date(patient.estimatedDueDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </td>
+                            <td className="text-center">
+                              <Badge bg="primary" className="badge-alma">{patient.gestationalAge} mg</Badge>
+                            </td>
+                            <td className="text-center">{patient.pregnancyOrder}x</td>
+                            <td className="text-center">
+                              <Badge bg={hbStatus.variant} className="badge-alma">
+                                {patient.lastHemoglobin}
+                              </Badge>
+                            </td>
+                            <td className="text-center">
+                              {patient.hasMiscarriage ? (
+                                <Badge bg="warning" className="badge-alma">Ya ({patient.miscarriageCount || 0})</Badge>
+                              ) : (
+                                <span className="text-success">-</span>
+                              )}
+                            </td>
+                            <td className="text-center">
+                              <div className="d-flex justify-content-center gap-1">
+                                <Link href={`/midwife/patients/${patient.id}`}>
+                                  <Button variant="info" size="sm" className="text-center">
+                                    <i className="bi bi-eye"></i>
+                                  </Button>
+                                </Link>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleShowDetail(patient)}
+                                  className="text-center"
+                                >
+                                  <i className="bi bi-clipboard-plus"></i>
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Container>
+      </div>
+
+      <Modal show={showModal} onHide={handleCloseModal} size="lg" centered>
+        <Modal.Header closeButton className="bg-alma-pink-dark text-white">
+          <Modal.Title className="fw-bold">
+            <i className="bi bi-person-badge me-2"></i>
+            Detail Pasien: {selectedPatient?.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedPatient && (
+            <div className="row g-3">
+              <div className="col-md-6">
+                <Card className="h-100 border-0 shadow-sm">
+                  <Card.Header className="bg-alma-green text-white text-center fw-bold">
+                    <i className="bi bi-person me-2"></i>Data Ibu
+                  </Card.Header>
+                  <Card.Body className="text-center">
+                    <table className="table table-sm mb-0">
+                      <tbody>
+                        <tr>
+                          <td className="text-muted text-start">Nama</td>
+                          <td className="fw-semibold text-end">{selectedPatient.name}</td>
+                        </tr>
+                        <tr>
+                          <td className="text-muted text-start">Umur</td>
+                          <td className="text-end">{selectedPatient.age} tahun</td>
+                        </tr>
+                        <tr>
+                          <td className="text-muted text-start">No. HP</td>
+                          <td className="text-end">{selectedPatient.phoneNumber}</td>
+                        </tr>
+                        <tr>
+                          <td className="text-muted text-start">Alamat</td>
+                          <td className="text-end">{selectedPatient.address}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </Card.Body>
+                </Card>
+              </div>
+              <div className="col-md-6">
+                <Card className="h-100 border-0 shadow-sm">
+                  <Card.Header className="bg-alma-pink-dark text-white text-center fw-bold">
+                    <i className="bi bi-heart-pulse me-2"></i>Data Kehamilan
+                  </Card.Header>
+                  <Card.Body className="text-center">
+                    <table className="table table-sm mb-0">
+                      <tbody>
+                        <tr>
+                          <td className="text-muted text-start">Nama Suami</td>
+                          <td className="text-end">{selectedPatient.husbandName || '-'}</td>
+                        </tr>
+                        <tr>
+                          <td className="text-muted text-start">Kehamilan ke</td>
+                          <td className="text-end">{selectedPatient.pregnancyOrder}x</td>
+                        </tr>
+                        <tr>
+                          <td className="text-muted text-start">Riwayat Keguguran</td>
+                          <td className="text-end">
+                            {selectedPatient.hasMiscarriage ? `Ya (${selectedPatient.miscarriageCount || 0} kali)` : 'Tidak'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="text-muted text-start">Hemoglobin</td>
+                          <td className="text-end">
+                            {(() => {
+                              const status = getHemoglobinStatus(selectedPatient.lastHemoglobin);
+                              return (
+                                <Badge bg={status.variant} className="badge-alma">
+                                  {selectedPatient.lastHemoglobin} g/dL
+                                </Badge>
+                              );
+                            })()}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </Card.Body>
+                </Card>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="justify-content-center">
+          <Link href={`/midwife/patients/${selectedPatient?.id}`}>
+            <Button className="btn-alma-primary text-center">
+              <i className="bi bi-eye me-2"></i>
+              Lihat Detail Lengkap
+            </Button>
           </Link>
-        </div>
-        <Card className="shadow-sm">
-          <Card.Body>
-            <Card.Title>Daftar Ibu Hamil Terdaftar</Card.Title>
-            {error && <Alert variant="danger">{error}</Alert>}
-            {patients.length === 0 ? (
-              <Alert variant="info">Belum ada ibu hamil yang terdaftar.</Alert>
-            ) : (
-              <Table striped bordered hover responsive>
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>Nama Ibu</th>
-                    <th>Nama Suami</th>
-                    <th>Umur Ibu</th>
-                    <th>No HP</th>
-                    <th>Alamat</th>
-                    <th>Usia Kehamilan</th>
-                    <th>Kehamilan Ke</th>
-                    <th>Keguguran?</th>
-                    <th>HPHT</th>
-                    <th>HPL</th>
-                    <th>HB Terakhir</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {patients.map((patient, index) => (
-                    <tr key={patient.id}>
-                      <td>{index + 1}</td>
-                      <td>{patient.name}</td>
-                      <td>{patient.husbandName}</td>
-                      <td>{patient.age}</td>
-                      <td>{patient.phoneNumber}</td>
-                      <td>{patient.address}</td>
-                      <td>{patient.gestationalAge} minggu</td>
-                      <td>{patient.pregnancyOrder}</td>
-                      <td>{patient.hasMiscarriage ? `Ya (${patient.miscarriageCount || 0} kali)` : 'Tidak'}</td>
-                      <td>{new Date(patient.lastMenstrualPeriod).toLocaleDateString()}</td>
-                      <td>{new Date(patient.estimatedDueDate).toLocaleDateString()}</td>
-                      <td>{patient.lastHemoglobin}</td>
-                      <td>
-                        <Link href={`/midwife/patients/${patient.id}`} passHref>
-                          <Button variant="info" size="sm" className="me-2">Detail</Button>
-                        </Link>
-                        <Button variant="warning" size="sm">Edit</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            )}
-          </Card.Body>
-        </Card>
-      </Container>
+          <Button variant="secondary" onClick={handleCloseModal} className="text-center">
+            <i className="bi bi-x-circle me-2"></i>
+            Tutup
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Layout>
   );
 };

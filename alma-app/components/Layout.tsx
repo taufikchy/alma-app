@@ -1,15 +1,8 @@
 // components/Layout.tsx
-"use client";
-
-
 import Navbar from './Navbar';
 import Footer from './Footer';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="d-flex flex-column min-vh-100">
       <Navbar />
@@ -19,6 +12,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Footer />
     </div>
   );
-};
-
-export default Layout;
+}

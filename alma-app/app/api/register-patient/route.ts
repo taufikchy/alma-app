@@ -13,8 +13,9 @@ export async function POST(request: Request) {
   }
 
   const {
-    email,
+    username,
     password,
+    confirmPassword,
     name,
     husbandName,
     age,
@@ -29,25 +30,33 @@ export async function POST(request: Request) {
     lastHemoglobin,
   } = await request.json();
 
-  // Basic validation
-  if (!email || !password || !name || !phoneNumber || !address || !gestationalAge || !pregnancyOrder || !lastMenstrualPeriod || !estimatedDueDate || !lastHemoglobin) {
+  if (!username || !password || !name || !phoneNumber || !address || !gestationalAge || !pregnancyOrder || !lastMenstrualPeriod || !estimatedDueDate || !lastHemoglobin) {
     return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
   }
 
+  if (password !== confirmPassword) {
+    return NextResponse.json({ message: 'Password and confirm password do not match' }, { status: 400 });
+  }
+
+  if (password.length < 8) {
+    return NextResponse.json({ message: 'Password must be at least 8 characters' }, { status: 400 });
+  }
+
+  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+    return NextResponse.json({ message: 'Password must contain at least 1 uppercase, 1 lowercase, and 1 number' }, { status: 400 });
+  }
+
   try {
-    // Check if user with this email already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { username },
     });
 
     if (existingUser) {
-      return NextResponse.json({ message: 'User with this email already exists' }, { status: 409 });
+      return NextResponse.json({ message: 'User with this username already exists' }, { status: 409 });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Find the midwife who is registering the patient
     const midwife = await prisma.midwife.findUnique({
       where: { userId: session.user.id as string },
     });
@@ -56,11 +65,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Midwife profile not found' }, { status: 404 });
     }
 
-    // Create new User and Patient in a transaction
     const newUserAndPatient = await prisma.$transaction(async (prisma) => {
       const newUser = await prisma.user.create({
         data: {
-          email,
+          username,
           password: hashedPassword,
           role: 'PATIENT',
         },
