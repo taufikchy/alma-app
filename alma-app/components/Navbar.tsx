@@ -19,7 +19,7 @@ const Navbar = () => {
       if (session?.user?.id) {
         try {
           if (session.user.role === 'MIDWIFE') {
-            const response = await fetch('/api/midwife-profile');
+            const response = await fetch('/api/midwife-profile', { credentials: 'include' });
             if (response.ok) {
               const data = await response.json();
               setDisplayName(data.name);
@@ -27,7 +27,7 @@ const Navbar = () => {
               setDisplayName(session.user.username || 'User');
             }
           } else if (session.user.role === 'PATIENT') {
-            const response = await fetch('/api/patient-profile');
+            const response = await fetch('/api/patient-profile', { credentials: 'include' });
             if (response.ok) {
               const data = await response.json();
               setDisplayName(data.name);

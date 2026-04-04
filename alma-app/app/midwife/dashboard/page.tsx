@@ -37,7 +37,7 @@ const MidwifeDashboardPage = () => {
     const fetchPatients = async () => {
       if (status === 'authenticated' && session?.user && session.user.role === 'MIDWIFE') {
         try {
-          const response = await fetch('/api/patients');
+          const response = await fetch('/api/patients', { credentials: 'include' });
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to fetch patients');

@@ -26,7 +26,7 @@ const EducationalMaterialsPage = () => {
     const fetchMaterials = async () => {
       if (status === 'authenticated' && (session?.user?.role === 'PATIENT' || session?.user?.role === 'MIDWIFE')) {
         try {
-          const response = await fetch('/api/educational-materials');
+          const response = await fetch('/api/educational-materials', { credentials: 'include' });
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to fetch educational materials');

@@ -67,6 +67,7 @@ const DailyCheckForm: React.FC<DailyCheckFormProps> = ({ onDailyCheckSubmitted }
       const response = await fetch('/api/dailycheck', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       if (!response.ok) {

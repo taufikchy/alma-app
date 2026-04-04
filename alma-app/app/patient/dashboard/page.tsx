@@ -27,7 +27,11 @@ interface PatientDetails {
     name: string;
   };
   dailyChecks?: {
+    id: string;
     date: string;
+    takenMedication: boolean;
+    photoUrl?: string | null;
+    notes?: string | null;
   }[];
 }
 
@@ -39,56 +43,58 @@ const PatientDashboardPage = () => {
   const [loadingPatientDetails, setLoadingPatientDetails] = useState(true);
   const [errorPatientDetails, setErrorPatientDetails] = useState<string | null>(null);
   const [showReminder, setShowReminder] = useState(false);
+  const [alreadyCheckedToday, setAlreadyCheckedToday] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasPlayedRef = useRef(false);
 
-  const handleDailyCheckSubmitted = useCallback(() => {
-    setRefreshHistory(prev => prev + 1);
-    setShowReminder(false);
-    hasPlayedRef.current = false;
+  const checkTodaySubmission = useCallback((checks?: { date: string }[]) => {
+    if (checks && checks.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const latestCheck = new Date(checks[0].date);
+      latestCheck.setHours(0, 0, 0, 0);
+
+      if (latestCheck.getTime() === today.getTime()) {
+        setAlreadyCheckedToday(true);
+      } else {
+        setAlreadyCheckedToday(false);
+      }
+    } else {
+      setAlreadyCheckedToday(false);
+    }
   }, []);
 
-  useEffect(() => {
-    audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQkANZi6xphJQgAAADt2lEhYdH6IjI+Sk5WWl5mam5ydn6Cio6SlpaWmp6iqqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8=');
+  const handleDailyCheckSubmitted = useCallback(() => {
+    setRefreshHistory(prev => prev + 1);
+    setAlreadyCheckedToday(true);
   }, []);
 
   useEffect(() => {
     const fetchPatientDetails = async () => {
-      if (status === 'authenticated' && session?.user?.role === 'PATIENT') {
+      if (status === 'authenticated' && session?.user && session?.user?.role === 'PATIENT' && session?.user?.id) {
         try {
-          const response = await fetch('/api/patient-details');
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to fetch patient details');
+          const response = await fetch('/api/patient-details', {
+            credentials: 'include',
+          });
+
+          if (response.status === 401) {
+            router.push('/login');
+            return;
           }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Request failed with status ${response.status}`);
+          }
+
           const data: PatientDetails = await response.json();
           setPatientDetails(data);
-
-          if (data.dailyChecks && data.dailyChecks.length > 0) {
-            const lastCheck = new Date(data.dailyChecks[0].date);
-            const now = new Date();
-            const hoursSinceLastCheck = (now.getTime() - lastCheck.getTime()) / (1000 * 60 * 60);
-
-            if (hoursSinceLastCheck >= 20 && !hasPlayedRef.current) {
-              setShowReminder(true);
-              try {
-                if (audioRef.current) {
-                  audioRef.current.play().catch(() => {});
-                }
-              } catch {}
-              hasPlayedRef.current = true;
-            }
-          } else if (!hasPlayedRef.current) {
-            setShowReminder(true);
-            try {
-              if (audioRef.current) {
-                audioRef.current.play().catch(() => {});
-              }
-            } catch {}
-            hasPlayedRef.current = true;
-          }
+          checkTodaySubmission(data.dailyChecks);
+          setErrorPatientDetails(null);
         } catch (err: unknown) {
-          setErrorPatientDetails(err instanceof Error ? err.message : 'An unexpected error occurred while fetching patient details.');
+          const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred while fetching patient details.';
+          setErrorPatientDetails(errorMessage);
         } finally {
           setLoadingPatientDetails(false);
         }
@@ -98,17 +104,42 @@ const PatientDashboardPage = () => {
     };
 
     fetchPatientDetails();
-  }, [session, status, router, refreshHistory]);
+  }, [session, status, router, refreshHistory, checkTodaySubmission]);
 
   useEffect(() => {
-    if (showReminder && audioRef.current) {
+    const checkAndNotify = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+
+      if (currentHour >= 19 && !hasPlayedRef.current && !alreadyCheckedToday) {
+        setShowReminder(true);
+        hasPlayedRef.current = true;
+      }
+    };
+
+    checkAndNotify();
+
+    const interval = setInterval(checkAndNotify, 60000);
+    return () => clearInterval(interval);
+  }, [alreadyCheckedToday]);
+
+  useEffect(() => {
+    if (showReminder) {
+      audioRef.current = new Audio('https://www.youtube.com/watch?v=RJZYCIRRKgo');
+      try {
+        audioRef.current.play().catch(() => {});
+      } catch {}
+
       const interval = setInterval(() => {
         try {
           audioRef.current?.play().catch(() => {});
         } catch {}
-      }, 30000);
+      }, 60000);
 
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        audioRef.current?.pause();
+      };
     }
   }, [showReminder]);
 
@@ -151,12 +182,14 @@ const PatientDashboardPage = () => {
     <Layout>
       <div style={{ backgroundColor: '#FFF5F8', minHeight: '100vh' }} className="py-4">
         <Container>
-          {showReminder && (
+          {showReminder && !alreadyCheckedToday && (
             <Alert variant="warning" className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <div className="d-flex align-items-center">
-                <i className="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
-                <strong>Pengingat:</strong> &nbsp;
-                <span>Apakah Anda sudah mencatat daily check hari ini? Jangan lupa minum TTD/MMS ya!</span>
+              <div className="d-flex align-items-center flex-grow-1">
+                <i className="bi bi-alarm-fill me-2 fs-4 text-danger"></i>
+                <div>
+                  <strong className="d-block">Ayoo Bunddaa 🌸</strong>
+                  <span>Jangan Lupa Minum Tablet Tambah Darah (TTD) atau MMS yaaa!!!</span>
+                </div>
               </div>
               <button
                 type="button"
@@ -174,6 +207,12 @@ const PatientDashboardPage = () => {
                 Selamat Datang, {patientDetails.name}!
               </h3>
               <p className="text-muted mb-0">Dashboard Pasien - Ayo Lawan Anemia</p>
+              {alreadyCheckedToday && (
+                <Badge bg="success" className="mt-2 px-3 py-2">
+                  <i className="bi bi-check-circle me-1"></i>
+                  Daily Check hari ini sudah selesai!
+                </Badge>
+              )}
             </Card.Body>
           </Card>
 
@@ -235,10 +274,31 @@ const PatientDashboardPage = () => {
 
           <Row className="g-4">
             <Col md={6}>
-              <DailyCheckForm onDailyCheckSubmitted={handleDailyCheckSubmitted} />
+              {alreadyCheckedToday ? (
+                <Card className="border-0 shadow-sm">
+                  <Card.Body className="text-center py-5">
+                    <i className="bi bi-check-circle-fill text-success fs-5 mb-3 d-block"></i>
+                    <h5 className="text-success fw-bold mb-2">Daily Check Selesai!</h5>
+                    <p className="text-muted mb-0">
+                      Kamu sudah melakukan daily check hari ini.<br />
+                      Sampai jumpa besok ya! 😊
+                    </p>
+                    <Badge bg="success" className="mt-3 px-3 py-2">
+                      <i className="bi bi-calendar-check me-1"></i>
+                      Cek lagi besok
+                    </Badge>
+                  </Card.Body>
+                </Card>
+              ) : (
+                <DailyCheckForm onDailyCheckSubmitted={handleDailyCheckSubmitted} />
+              )}
             </Col>
             <Col md={6}>
-              <DailyCheckHistory refreshTrigger={refreshHistory} patientId={patientDetails.id} />
+              <DailyCheckHistory
+                refreshTrigger={refreshHistory}
+                patientId={patientDetails.id}
+                initialData={patientDetails.dailyChecks}
+              />
             </Col>
           </Row>
         </Container>
