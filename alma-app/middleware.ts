@@ -23,7 +23,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/midwife')) {
-    if (token.role !== 'MIDWIFE') {
+    if (token.role !== 'MIDWIFE' && token.role !== 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
+  if (pathname.startsWith('/superadmin')) {
+    if (token.role !== 'SUPER_ADMIN') {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
@@ -43,11 +49,19 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    if (pathname.startsWith('/api/patients') && token.role !== 'MIDWIFE') {
+    if (pathname.startsWith('/api/patients') && token.role !== 'MIDWIFE' && token.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    if (pathname.startsWith('/api/register-bidan') && token.role !== 'MIDWIFE') {
+    if (pathname.startsWith('/api/register-bidan') && token.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
+
+    if (pathname.startsWith('/api/midwives') && token.role !== 'MIDWIFE' && token.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
+
+    if (pathname.startsWith('/api/midwife-dailycheck') && token.role !== 'MIDWIFE' && token.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
@@ -66,6 +80,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/midwife/:path*',
+    '/superadmin/:path*',
     '/patient/:path*',
     '/api/:path*',
   ],

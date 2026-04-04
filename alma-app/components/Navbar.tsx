@@ -34,6 +34,8 @@ const Navbar = () => {
             } else {
               setDisplayName(session.user.username || 'User');
             }
+          } else if (session.user.role === 'SUPER_ADMIN') {
+            setDisplayName(session.user.username || 'Super Admin');
           }
         } catch {
           setDisplayName(session.user.username || 'User');
@@ -50,6 +52,8 @@ const Navbar = () => {
         return 'Bidan';
       case 'PATIENT':
         return 'Pasien';
+      case 'SUPER_ADMIN':
+        return 'Super Admin';
       default:
         return role;
     }
@@ -96,6 +100,15 @@ const Navbar = () => {
                     <li className="nav-item mx-1">
                       <Link className="nav-link text-center" href="/midwife/dailycheck">
                         <i className="bi bi-clipboard2-check me-1"></i> Daily Check
+                      </Link>
+                    </li>
+                  </>
+                )}
+                {session.user.role === 'SUPER_ADMIN' && (
+                  <>
+                    <li className="nav-item mx-1">
+                      <Link className="nav-link text-center" href="/superadmin/dashboard">
+                        <i className="bi bi-shield-lock me-1"></i> Dashboard Super Admin
                       </Link>
                     </li>
                   </>

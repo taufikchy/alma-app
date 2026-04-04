@@ -32,6 +32,9 @@ const MidwifeDashboardPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -65,6 +68,41 @@ const MidwifeDashboardPage = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedPatient(null);
+  };
+
+  const handleDeleteClick = (patient: Patient) => {
+    setPatientToDelete(patient);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!patientToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/patients/${patientToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete patient');
+      }
+
+      setPatients(patients.filter(p => p.id !== patientToDelete.id));
+      setShowDeleteModal(false);
+      setPatientToDelete(null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menghapus pasien');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setPatientToDelete(null);
   };
 
   const getHemoglobinStatus = (hb: number) => {
@@ -203,6 +241,14 @@ const MidwifeDashboardPage = () => {
                                 >
                                   <i className="bi bi-clipboard-plus"></i>
                                 </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(patient)}
+                                  className="text-center"
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -309,6 +355,45 @@ const MidwifeDashboardPage = () => {
           <Button variant="secondary" onClick={handleCloseModal} className="text-center">
             <i className="bi bi-x-circle me-2"></i>
             Tutup
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showDeleteModal} onHide={handleCancelDelete} centered>
+        <Modal.Header closeButton className="bg-danger text-white">
+          <Modal.Title className="fw-bold">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            Konfirmasi Hapus Pasien
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="text-center">
+            <i className="bi bi-person-x fs-1 text-danger mb-3 d-block"></i>
+            <p className="mb-2">Apakah Anda yakin ingin menghapus pasien:</p>
+            <h5 className="fw-bold text-danger">{patientToDelete?.name}</h5>
+            <p className="text-muted small mt-3">
+              <i className="bi bi-info-circle me-1"></i>
+              Tindakan ini tidak dapat dibatalkan. Semua data daily check pasien juga akan dihapus.
+            </p>
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="justify-content-center">
+          <Button variant="secondary" onClick={handleCancelDelete} disabled={deleting}>
+            <i className="bi bi-x-circle me-2"></i>
+            Batal
+          </Button>
+          <Button variant="danger" onClick={handleConfirmDelete} disabled={deleting}>
+            {deleting ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Menghapus...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-trash me-2"></i>
+                Hapus Pasien
+              </>
+            )}
           </Button>
         </Modal.Footer>
       </Modal>

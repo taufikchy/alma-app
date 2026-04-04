@@ -15,6 +15,7 @@ datasource db {
 enum Role {
   MIDWIFE
   PATIENT
+  SUPER_ADMIN
 }
 
 // Tabel untuk semua pengguna (bidan dan pasien)
