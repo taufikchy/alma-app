@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
-// POST /api/dailycheck - Create a new daily check entry
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
@@ -12,14 +11,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { takenMedication, photoUrl, notes } = await request.json();
-
-  if (typeof takenMedication !== 'boolean') {
-    return NextResponse.json({ message: 'Invalid input for takenMedication' }, { status: 400 });
-  }
-
   try {
-    // Find the patient associated with the logged-in user
+    const formData = await request.formData();
+    const takenMedication = formData.get('takenMedication') === 'true';
+    const notes = formData.get('notes') as string | null;
+    const photo = formData.get('photo') as File | null;
+
+    let photoUrl: string | null = null;
+
+    if (photo && photo.size > 0) {
+      const bytes = await photo.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      photoUrl = `data:${photo.type};base64,${buffer.toString('base64')}`;
+    }
+
     const patient = await prisma.patient.findUnique({
       where: { userId: session.user.id },
     });
@@ -33,9 +38,10 @@ export async function POST(request: Request) {
         patientId: patient.id,
         takenMedication,
         photoUrl,
-        notes,
+        notes: notes || null,
       },
     });
+
     return NextResponse.json(newDailyCheck, { status: 201 });
   } catch (error) {
     console.error('Error creating daily check:', error);
@@ -43,7 +49,6 @@ export async function POST(request: Request) {
   }
 }
 
-// GET /api/dailycheck?patientId=[id] - Get daily check history for a patient
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 

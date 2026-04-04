@@ -17,8 +17,12 @@ export async function GET() {
       include: {
         midwife: {
           select: {
-            name: true, // Hanya ambil nama bidan
+            name: true,
           },
+        },
+        dailyChecks: {
+          orderBy: { date: 'desc' },
+          take: 1,
         },
       },
     });

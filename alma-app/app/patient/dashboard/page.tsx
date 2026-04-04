@@ -1,7 +1,7 @@
 // app/patient/dashboard/page.tsx
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Layout from '@/components/Layout';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -26,6 +26,9 @@ interface PatientDetails {
   midwife: {
     name: string;
   };
+  dailyChecks?: {
+    date: string;
+  }[];
 }
 
 const PatientDashboardPage = () => {
@@ -35,9 +38,18 @@ const PatientDashboardPage = () => {
   const [patientDetails, setPatientDetails] = useState<PatientDetails | null>(null);
   const [loadingPatientDetails, setLoadingPatientDetails] = useState(true);
   const [errorPatientDetails, setErrorPatientDetails] = useState<string | null>(null);
+  const [showReminder, setShowReminder] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasPlayedRef = useRef(false);
 
   const handleDailyCheckSubmitted = useCallback(() => {
     setRefreshHistory(prev => prev + 1);
+    setShowReminder(false);
+    hasPlayedRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQkANZi6xphJQgAAADt2lEhYdH6IjI+Sk5WWl5mam5ydn6Cio6SlpaWmp6iqqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8=');
   }, []);
 
   useEffect(() => {
@@ -51,6 +63,30 @@ const PatientDashboardPage = () => {
           }
           const data: PatientDetails = await response.json();
           setPatientDetails(data);
+
+          if (data.dailyChecks && data.dailyChecks.length > 0) {
+            const lastCheck = new Date(data.dailyChecks[0].date);
+            const now = new Date();
+            const hoursSinceLastCheck = (now.getTime() - lastCheck.getTime()) / (1000 * 60 * 60);
+
+            if (hoursSinceLastCheck >= 20 && !hasPlayedRef.current) {
+              setShowReminder(true);
+              try {
+                if (audioRef.current) {
+                  audioRef.current.play().catch(() => {});
+                }
+              } catch {}
+              hasPlayedRef.current = true;
+            }
+          } else if (!hasPlayedRef.current) {
+            setShowReminder(true);
+            try {
+              if (audioRef.current) {
+                audioRef.current.play().catch(() => {});
+              }
+            } catch {}
+            hasPlayedRef.current = true;
+          }
         } catch (err: unknown) {
           setErrorPatientDetails(err instanceof Error ? err.message : 'An unexpected error occurred while fetching patient details.');
         } finally {
@@ -62,7 +98,19 @@ const PatientDashboardPage = () => {
     };
 
     fetchPatientDetails();
-  }, [session, status, router]);
+  }, [session, status, router, refreshHistory]);
+
+  useEffect(() => {
+    if (showReminder && audioRef.current) {
+      const interval = setInterval(() => {
+        try {
+          audioRef.current?.play().catch(() => {});
+        } catch {}
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [showReminder]);
 
   if (status === 'loading' || loadingPatientDetails) {
     return (
@@ -103,6 +151,22 @@ const PatientDashboardPage = () => {
     <Layout>
       <div style={{ backgroundColor: '#FFF5F8', minHeight: '100vh' }} className="py-4">
         <Container>
+          {showReminder && (
+            <Alert variant="warning" className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div className="d-flex align-items-center">
+                <i className="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                <strong>Pengingat:</strong> &nbsp;
+                <span>Apakah Anda sudah mencatat daily check hari ini? Jangan lupa minum TTD/MMS ya!</span>
+              </div>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setShowReminder(false)}
+                aria-label="Close"
+              ></button>
+            </Alert>
+          )}
+
           <Card className="mb-4 border-0 shadow-sm">
             <Card.Body className="text-center">
               <h3 className="fw-bold text-alma-green mb-2">
