@@ -10,6 +10,7 @@ interface DailyCheck {
   takenMedication: boolean;
   photoUrl?: string | null;
   notes?: string | null;
+  createdAt: string;
 }
 
 interface DailyCheckHistoryProps {
@@ -119,6 +120,13 @@ const DailyCheckHistory: React.FC<DailyCheckHistoryProps> = ({ refreshTrigger = 
                         month: 'long',
                         year: 'numeric',
                       })}
+                      <span className="ms-2">
+                        <i className="bi bi-clock me-1"></i>
+                        {new Date(check.createdAt).toLocaleTimeString('id-ID', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
                     </p>
                     {check.notes && (
                       <p className="mb-1 small">

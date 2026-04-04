@@ -32,6 +32,7 @@ interface PatientDetails {
     takenMedication: boolean;
     photoUrl?: string | null;
     notes?: string | null;
+    createdAt: string;
   }[];
 }
 
