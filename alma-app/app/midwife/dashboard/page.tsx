@@ -333,10 +333,10 @@ const MidwifeDashboardPage = () => {
                           <td className="text-muted text-start">Hemoglobin</td>
                           <td className="text-end">
                             {(() => {
-                              const status = getHemoglobinStatus(selectedPatient.lastHemoglobin);
+                              const classification = getHbClassification(selectedPatient.lastHemoglobin);
                               return (
-                                <Badge bg={status.variant} className="badge-alma">
-                                  {selectedPatient.lastHemoglobin} g/dL
+                                <Badge bg={classification.variant} className="badge-alma">
+                                  {selectedPatient.lastHemoglobin} g/dL ({classification.text})
                                 </Badge>
                               );
                             })()}
