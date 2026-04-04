@@ -33,6 +33,8 @@ const LoginPage = () => {
         router.push('/midwife/dashboard');
       } else if (role === 'PATIENT') {
         router.push('/patient/dashboard');
+      } else if (role === 'SUPER_ADMIN') {
+        router.push('/superadmin/dashboard');
       } else {
         router.push('/');
       }
@@ -134,6 +136,20 @@ const LoginPage = () => {
                           id="roleMidwife"
                           value="MIDWIFE"
                           checked={role === 'MIDWIFE'}
+                          onChange={(e) => setRole(e.target.value)}
+                        />
+                        <Form.Check
+                          type="radio"
+                          label={
+                            <span className="d-flex align-items-center gap-2">
+                              <i className="bi bi-shield-fill-check text-warning"></i>
+                              Super Admin
+                            </span>
+                          }
+                          name="roleOptions"
+                          id="roleSuperAdmin"
+                          value="SUPER_ADMIN"
+                          checked={role === 'SUPER_ADMIN'}
                           onChange={(e) => setRole(e.target.value)}
                         />
                       </div>

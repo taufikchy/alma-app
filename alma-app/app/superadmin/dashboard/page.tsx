@@ -18,6 +18,18 @@ interface MidwifeEntry {
   createdAt: string;
 }
 
+interface PatientEntry {
+  id: string;
+  name: string;
+  husbandName: string;
+  age: number;
+  gestationalAge: number;
+  phoneNumber: string;
+  address: string;
+  estimatedDueDate: string;
+  lastHemoglobin: number;
+}
+
 interface NewBidanForm {
   username: string;
   password: string;
@@ -41,6 +53,10 @@ const SuperAdminDashboardPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const [showPatientsModal, setShowPatientsModal] = useState(false);
+  const [selectedMidwife, setSelectedMidwife] = useState<MidwifeEntry | null>(null);
+  const [patients, setPatients] = useState<PatientEntry[]>([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
 
   const fetchMidwives = async () => {
     try {
@@ -79,6 +95,31 @@ const SuperAdminDashboardPage = () => {
     setShowAddModal(false);
     setSubmitError(null);
     setSubmitSuccess(null);
+  };
+
+  const handleViewPatients = async (midwife: MidwifeEntry) => {
+    setSelectedMidwife(midwife);
+    setShowPatientsModal(true);
+    setLoadingPatients(true);
+    setPatients([]);
+    try {
+      const response = await fetch(`/api/patients?midwifeId=${midwife.id}`, { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('Failed to fetch patients');
+      }
+      const data = await response.json();
+      setPatients(data);
+    } catch (err) {
+      console.error('Error fetching patients:', err);
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
+
+  const handleClosePatientsModal = () => {
+    setShowPatientsModal(false);
+    setSelectedMidwife(null);
+    setPatients([]);
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,6 +289,7 @@ const SuperAdminDashboardPage = () => {
                         <th className="text-center">Username</th>
                         <th className="text-center">Jumlah Pasien</th>
                         <th className="text-center">Tanggal Daftar</th>
+                        <th className="text-center">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -267,6 +309,17 @@ const SuperAdminDashboardPage = () => {
                               month: 'short',
                               year: 'numeric',
                             })}
+                          </td>
+                          <td className="text-center">
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={() => handleViewPatients(midwife)}
+                              disabled={midwife.patientCount === 0}
+                            >
+                              <i className="bi bi-eye me-1"></i>
+                              Lihat Pasien
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -370,6 +423,64 @@ const SuperAdminDashboardPage = () => {
             </Button>
           </Modal.Footer>
         )}
+      </Modal>
+
+      <Modal show={showPatientsModal} onHide={handleClosePatientsModal} centered size="lg">
+        <Modal.Header closeButton className="bg-alma-pink-dark text-white">
+          <Modal.Title className="fw-bold">
+            <i className="bi bi-people me-2"></i>
+            Daftar Pasien - {selectedMidwife?.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {loadingPatients ? (
+            <div className="text-center py-4">
+              <Spinner animation="border" />
+              <p className="mt-2">Memuat data pasien...</p>
+            </div>
+          ) : patients.length === 0 ? (
+            <div className="text-center py-4">
+              <i className="bi bi-inbox fs-1 text-muted"></i>
+              <p className="text-muted mt-2">Belum ada pasien terdaftar</p>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <Table bordered hover className="mb-0 align-middle" style={{ fontSize: '0.85rem' }}>
+                <thead>
+                  <tr>
+                    <th className="text-center">No</th>
+                    <th className="text-center">Nama Pasien</th>
+                    <th className="text-center">Usia</th>
+                    <th className="text-center">Usia Kehamilan</th>
+                    <th className="text-center">No. HP</th>
+                    <th className="text-center">Hemoglobin</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patients.map((patient, index) => (
+                    <tr key={patient.id}>
+                      <td className="text-center">{index + 1}</td>
+                      <td className="fw-semibold">{patient.name}</td>
+                      <td className="text-center">{patient.age} tahun</td>
+                      <td className="text-center">{patient.gestationalAge} minggu</td>
+                      <td className="text-center">{patient.phoneNumber}</td>
+                      <td className="text-center">
+                        <Badge bg={patient.lastHemoglobin < 11 ? 'danger' : 'success'}>
+                          {patient.lastHemoglobin} g/dL
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClosePatientsModal}>
+            Tutup
+          </Button>
+        </Modal.Footer>
       </Modal>
     </Layout>
   );
