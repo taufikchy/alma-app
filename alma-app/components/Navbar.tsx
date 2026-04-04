@@ -6,7 +6,11 @@ import { useSession, signOut } from 'next-auth/react';
 import { Dropdown } from 'react-bootstrap';
 import { useEffect, useState, useRef } from 'react';
 
-const Navbar = () => {
+interface NavbarProps {
+  isAlarmPlaying?: boolean;
+}
+
+const Navbar = ({ isAlarmPlaying = false }: NavbarProps) => {
   const { data: session } = useSession();
   const [displayName, setDisplayName] = useState<string>('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -82,7 +86,7 @@ const Navbar = () => {
       <div className="container">
         <Link className="navbar-brand d-flex align-items-center" href="/">
           <span className="fs-4 fw-bold text-alma-green">ALMA</span>
-          <span className="fs-4 fw-bold text-alma-pink"> 🌸</span>
+          <i className={`bi bi-bell-fill fs-4 text-alma-pink ms-1 ${isAlarmPlaying ? 'animate-bell' : ''}`}></i>
         </Link>
         <button
           className={`navbar-toggler border-0 ${isMenuOpen ? 'collapsed' : ''}`}

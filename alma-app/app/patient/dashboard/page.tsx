@@ -131,11 +131,7 @@ const PatientDashboardPage = () => {
   }, [session, status, router, refreshHistory, checkTodaySubmission]);
 
   const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillator1Ref = useRef<OscillatorNode | null>(null);
-  const oscillator2Ref = useRef<OscillatorNode | null>(null);
-  const gain1Ref = useRef<GainNode | null>(null);
-  const gain2Ref = useRef<GainNode | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPlayingRef = useRef(false);
 
   const playNotificationSound = useCallback(() => {
@@ -149,57 +145,42 @@ const PatientDashboardPage = () => {
       isPlayingRef.current = true;
       setIsAlarmPlaying(true);
 
-      let toggle = true;
+      const createOscillator = (frequency: number, type: OscillatorType, gainValue: number) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
 
-      const playTone = () => {
-        if (!isPlayingRef.current || !audioContext) return;
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
 
-        if (toggle) {
-          if (oscillator1Ref.current) {
-            try { oscillator1Ref.current.stop(); } catch {}
-            oscillator1Ref.current = null;
-          }
-          if (gain1Ref.current) {
-            try { gain1Ref.current.disconnect(); } catch {}
-            gain1Ref.current = null;
-          }
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+        gainNode.gain.value = gainValue;
 
-          const osc = audioContext.createOscillator();
-          const gain = audioContext.createGain();
-          osc.connect(gain);
-          gain.connect(audioContext.destination);
-          osc.frequency.value = 880;
-          osc.type = 'square';
-          gain.gain.value = 0.3;
-          osc.start();
-          oscillator1Ref.current = osc;
-          gain1Ref.current = gain;
-        } else {
-          if (oscillator2Ref.current) {
-            try { oscillator2Ref.current.stop(); } catch {}
-            oscillator2Ref.current = null;
-          }
-          if (gain2Ref.current) {
-            try { gain2Ref.current.disconnect(); } catch {}
-            gain2Ref.current = null;
-          }
-
-          const osc = audioContext.createOscillator();
-          const gain = audioContext.createGain();
-          osc.connect(gain);
-          gain.connect(audioContext.destination);
-          osc.frequency.value = 660;
-          osc.type = 'square';
-          gain.gain.value = 0.3;
-          osc.start();
-          oscillator2Ref.current = osc;
-          gain2Ref.current = gain;
-        }
-        toggle = !toggle;
+        return { oscillator, gainNode };
       };
 
-      playTone();
-      intervalRef.current = setInterval(playTone, 300);
+      const startAlarmTone = () => {
+        if (!isPlayingRef.current || !audioContext) return;
+
+        // Sound 1
+        const { oscillator: osc1, gainNode: gain1 } = createOscillator(880, 'sine', 0.3);
+        osc1.start(audioContext.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+        osc1.stop(audioContext.currentTime + 0.5);
+
+        // Sound 2
+        const { oscillator: osc2, gainNode: gain2 } = createOscillator(660, 'sine', 0.3);
+        osc2.start(audioContext.currentTime + 0.6);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1.1);
+        osc2.stop(audioContext.currentTime + 1.1);
+
+        // Loop if still playing
+        if (isPlayingRef.current) {
+          intervalRef.current = setTimeout(startAlarmTone, 1200); // Repeat after 1.2 seconds
+        }
+      };
+
+      startAlarmTone();
 
     } catch (e) {
       console.error('Audio play error:', e);
@@ -213,29 +194,11 @@ const PatientDashboardPage = () => {
     setIsAlarmPlaying(false);
 
     if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+      clearTimeout(intervalRef.current);
       intervalRef.current = null;
     }
 
     try {
-      if (oscillator1Ref.current) {
-        oscillator1Ref.current.stop();
-        oscillator1Ref.current.disconnect();
-        oscillator1Ref.current = null;
-      }
-      if (oscillator2Ref.current) {
-        oscillator2Ref.current.stop();
-        oscillator2Ref.current.disconnect();
-        oscillator2Ref.current = null;
-      }
-      if (gain1Ref.current) {
-        gain1Ref.current.disconnect();
-        gain1Ref.current = null;
-      }
-      if (gain2Ref.current) {
-        gain2Ref.current.disconnect();
-        gain2Ref.current = null;
-      }
       if (audioContextRef.current) {
         audioContextRef.current.close();
         audioContextRef.current = null;
@@ -301,71 +264,9 @@ const PatientDashboardPage = () => {
 
       if (currentHour >= 19) {
         setShowReminder(true);
-        setIsAlarmPlaying(true);
+        playNotificationSound();
         showBrowserNotification();
         hasPlayedRef.current = true;
-
-        try {
-          const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-          if (audioContextRef.current) {
-            try { audioContextRef.current.close(); } catch {}
-          }
-          audioContextRef.current = new AudioContextClass();
-          const audioContext = audioContextRef.current;
-          let toggle = true;
-
-          const playTone = () => {
-            if (!hasPlayedRef.current || !audioContext) return;
-
-            if (toggle) {
-              if (oscillator1Ref.current) {
-                try { oscillator1Ref.current.stop(); } catch {}
-                oscillator1Ref.current = null;
-              }
-              if (gain1Ref.current) {
-                try { gain1Ref.current.disconnect(); } catch {}
-                gain1Ref.current = null;
-              }
-
-              const osc = audioContext.createOscillator();
-              const gain = audioContext.createGain();
-              osc.connect(gain);
-              gain.connect(audioContext.destination);
-              osc.frequency.value = 880;
-              osc.type = 'square';
-              gain.gain.value = 0.3;
-              osc.start();
-              oscillator1Ref.current = osc;
-              gain1Ref.current = gain;
-            } else {
-              if (oscillator2Ref.current) {
-                try { oscillator2Ref.current.stop(); } catch {}
-                oscillator2Ref.current = null;
-              }
-              if (gain2Ref.current) {
-                try { gain2Ref.current.disconnect(); } catch {}
-                gain2Ref.current = null;
-              }
-
-              const osc = audioContext.createOscillator();
-              const gain = audioContext.createGain();
-              osc.connect(gain);
-              gain.connect(audioContext.destination);
-              osc.frequency.value = 660;
-              osc.type = 'square';
-              gain.gain.value = 0.3;
-              osc.start();
-              oscillator2Ref.current = osc;
-              gain2Ref.current = gain;
-            }
-            toggle = !toggle;
-          };
-
-          playTone();
-          intervalRef.current = setInterval(playTone, 300);
-        } catch (e) {
-          console.error('Audio play error:', e);
-        }
       }
     };
 
@@ -376,7 +277,7 @@ const PatientDashboardPage = () => {
     return () => {
       clearInterval(interval);
       if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+        clearTimeout(intervalRef.current);
         intervalRef.current = null;
       }
       if (audioContextRef.current) {
@@ -445,16 +346,8 @@ const PatientDashboardPage = () => {
                       setIsAlarmPlaying(false);
                       setShowReminder(false);
                       if (intervalRef.current) {
-                        clearInterval(intervalRef.current);
+                        clearTimeout(intervalRef.current);
                         intervalRef.current = null;
-                      }
-                      if (oscillator1Ref.current) {
-                        try { oscillator1Ref.current.stop(); } catch {}
-                        oscillator1Ref.current = null;
-                      }
-                      if (oscillator2Ref.current) {
-                        try { oscillator2Ref.current.stop(); } catch {}
-                        oscillator2Ref.current = null;
                       }
                       if (audioContextRef.current) {
                         try { audioContextRef.current.close(); } catch {}
@@ -470,72 +363,7 @@ const PatientDashboardPage = () => {
                   <button
                     type="button"
                     className="btn btn-lg btn-outline-primary"
-                    onClick={() => {
-                      setIsAlarmPlaying(true);
-                      hasPlayedRef.current = true;
-
-                      try {
-                        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-                        if (audioContextRef.current) {
-                          try { audioContextRef.current.close(); } catch {}
-                        }
-                        audioContextRef.current = new AudioContextClass();
-                        const audioContext = audioContextRef.current;
-                        let toggle = true;
-
-                        const playTone = () => {
-                          if (!hasPlayedRef.current || !audioContext) return;
-
-                          if (toggle) {
-                            if (oscillator1Ref.current) {
-                              try { oscillator1Ref.current.stop(); } catch {}
-                              oscillator1Ref.current = null;
-                            }
-                            if (gain1Ref.current) {
-                              try { gain1Ref.current.disconnect(); } catch {}
-                              gain1Ref.current = null;
-                            }
-
-                            const osc = audioContext.createOscillator();
-                            const gain = audioContext.createGain();
-                            osc.connect(gain);
-                            gain.connect(audioContext.destination);
-                            osc.frequency.value = 880;
-                            osc.type = 'square';
-                            gain.gain.value = 0.3;
-                            osc.start();
-                            oscillator1Ref.current = osc;
-                            gain1Ref.current = gain;
-                          } else {
-                            if (oscillator2Ref.current) {
-                              try { oscillator2Ref.current.stop(); } catch {}
-                              oscillator2Ref.current = null;
-                            }
-                            if (gain2Ref.current) {
-                              try { gain2Ref.current.disconnect(); } catch {}
-                              gain2Ref.current = null;
-                            }
-
-                            const osc = audioContext.createOscillator();
-                            const gain = audioContext.createGain();
-                            osc.connect(gain);
-                            gain.connect(audioContext.destination);
-                            osc.frequency.value = 660;
-                            osc.type = 'square';
-                            gain.gain.value = 0.3;
-                            osc.start();
-                            oscillator2Ref.current = osc;
-                            gain2Ref.current = gain;
-                          }
-                          toggle = !toggle;
-                        };
-
-                        playTone();
-                        intervalRef.current = setInterval(playTone, 300);
-                      } catch (e) {
-                        console.error('Audio play error:', e);
-                      }
-                    }}
+                    onClick={playNotificationSound}
                     title="Putar alarm"
                   >
                     <i className="bi bi-volume-up me-2"></i>

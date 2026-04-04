@@ -11,7 +11,7 @@ export default function HomePage() {
         <Container>
           <div className="text-center mb-5">
             <h1 className="display-4 fw-bold text-alma-green mb-3">
-              🌸 ALMA
+              <i className="bi bi-bell-fill text-alma-pink me-2"></i> ALMA
             </h1>
             <p className="lead text-muted mb-2">Aplikasi Layanan Manajemen Antenatal</p>
             <p className="text-muted">Alarm Lawan Anemia - Untuk ibu hamil Indonesia yang lebih sehat</p>
