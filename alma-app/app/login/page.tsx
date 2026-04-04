@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('MIDWIFE');
+  const [role, setRole] = useState('SUPER_ADMIN');
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
@@ -136,20 +136,6 @@ const LoginPage = () => {
                           id="roleMidwife"
                           value="MIDWIFE"
                           checked={role === 'MIDWIFE'}
-                          onChange={(e) => setRole(e.target.value)}
-                        />
-                        <Form.Check
-                          type="radio"
-                          label={
-                            <span className="d-flex align-items-center gap-2">
-                              <i className="bi bi-shield-fill-check text-warning"></i>
-                              Super Admin
-                            </span>
-                          }
-                          name="roleOptions"
-                          id="roleSuperAdmin"
-                          value="SUPER_ADMIN"
-                          checked={role === 'SUPER_ADMIN'}
                           onChange={(e) => setRole(e.target.value)}
                         />
                       </div>
