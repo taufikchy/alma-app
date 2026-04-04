@@ -87,11 +87,18 @@ const Navbar = () => {
                   </li>
                 )}
                 {session.user.role === 'MIDWIFE' && (
-                  <li className="nav-item mx-1">
-                    <Link className="nav-link text-center" href="/midwife/dashboard">
-                      <i className="bi bi-clipboard2-pulse me-1"></i> Dashboard Bidan
-                    </Link>
-                  </li>
+                  <>
+                    <li className="nav-item mx-1">
+                      <Link className="nav-link text-center" href="/midwife/dashboard">
+                        <i className="bi bi-clipboard2-pulse me-1"></i> Dashboard Bidan
+                      </Link>
+                    </li>
+                    <li className="nav-item mx-1">
+                      <Link className="nav-link text-center" href="/midwife/dailycheck">
+                        <i className="bi bi-clipboard2-check me-1"></i> Daily Check
+                      </Link>
+                    </li>
+                  </>
                 )}
                 <li className="nav-item mx-1">
                   <Dropdown align="end">

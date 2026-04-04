@@ -400,3 +400,25 @@ a:hover {
   border-radius: 8px;
   object-fit: contain;
 }
+
+.day-cell {
+  vertical-align: middle;
+  transition: background-color 0.2s;
+}
+
+.day-cell:hover {
+  background-color: var(--alma-surface-alt);
+}
+
+.today-date {
+  background-color: rgba(46, 125, 50, 0.1) !important;
+}
+
+.selected-date {
+  background-color: var(--alma-primary) !important;
+  color: white !important;
+}
+
+.selected-date .text-muted {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
