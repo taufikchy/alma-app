@@ -14,8 +14,8 @@ export default function HomePage() {
               🌸 ALMA
             </h1>
             <p className="lead text-muted mb-2">Aplikasi Layanan Manajemen Antenatal</p>
-            <p className="text-muted">Ayo Lawan Anemia - Untuk ibu hamil Indonesia yang lebih sehat</p>
-          </div>
+            <p className="text-muted">Alarm Lawan Anemia - Untuk ibu hamil Indonesia yang lebih sehat</p>
+            </div>
 
           <Row className="g-4 justify-content-center mb-5">
             <Col md={6} lg={4}>

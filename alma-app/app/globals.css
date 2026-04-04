@@ -148,6 +148,7 @@ a:hover {
   box-shadow: 0 2px 10px var(--alma-shadow);
   padding: 12px 0;
   border-bottom: 3px solid var(--alma-secondary-light);
+  z-index: 1050 !important;
 }
 
 .navbar-alma .navbar-brand {
@@ -167,6 +168,7 @@ a:hover {
   border-radius: var(--alma-radius-sm);
   transition: var(--alma-transition);
   text-align: center;
+  cursor: pointer;
 }
 
 .navbar-alma .nav-link:hover {
@@ -182,10 +184,21 @@ a:hover {
 
 .navbar-alma .navbar-toggler {
   border-color: var(--alma-border);
+  z-index: 1060;
+  position: relative;
+}
+
+.navbar-alma .navbar-toggler:focus {
+  box-shadow: none;
 }
 
 .navbar-alma .navbar-toggler-icon {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23757575' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.navbar-alma .navbar-collapse {
+  z-index: 1040;
+  position: relative;
 }
 
 .navbar-alma .dropdown-menu {

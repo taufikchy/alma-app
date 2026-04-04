@@ -4,14 +4,19 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Dropdown } from 'react-bootstrap';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const Navbar = () => {
   const { data: session } = useSession();
   const [displayName, setDisplayName] = useState<string>('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    import('bootstrap/dist/js/bootstrap.bundle.min.js').catch(() => {});
+    const initBootstrap = async () => {
+      const bootstrap = await import('bootstrap/dist/js/bootstrap.bundle.min.js');
+    };
+    initBootstrap();
   }, []);
 
   useEffect(() => {
@@ -46,6 +51,19 @@ const Navbar = () => {
     fetchUserName();
   }, [session]);
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    closeMenu();
+    signOut();
+  };
+
   const getRoleName = (role: string) => {
     switch (role) {
       case 'MIDWIFE':
@@ -60,32 +78,39 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-alma sticky-top">
+    <nav className="navbar navbar-expand-lg navbar-alma sticky-top" ref={navRef}>
       <div className="container">
         <Link className="navbar-brand d-flex align-items-center" href="/">
           <span className="fs-4 fw-bold text-alma-green">ALMA</span>
           <span className="fs-4 fw-bold text-alma-pink"> 🌸</span>
         </Link>
-        <button className="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <button
+          className={`navbar-toggler border-0 ${isMenuOpen ? 'collapsed' : ''}`}
+          type="button"
+          onClick={toggleMenu}
+          aria-controls="navbarNav"
+          aria-expanded={isMenuOpen}
+          aria-label="Toggle navigation"
+        >
           <span className="navbar-toggler-icon"></span>
         </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
+        <div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id="navbarNav">
           <ul className="navbar-nav ms-auto align-items-center">
             <li className="nav-item mx-1">
-              <Link className="nav-link text-center" href="/">
+              <Link className="nav-link text-center" href="/" onClick={closeMenu}>
                 <i className="bi bi-house-door me-1"></i> Beranda
               </Link>
             </li>
             {session ? (
               <>
                 <li className="nav-item mx-1">
-                  <Link className="nav-link text-center" href="/patient/educational-materials">
+                  <Link className="nav-link text-center" href="/patient/educational-materials" onClick={closeMenu}>
                     <i className="bi bi-book me-1"></i> Materi Edukasi
                   </Link>
                 </li>
                 {session.user.role === 'PATIENT' && (
                   <li className="nav-item mx-1">
-                    <Link className="nav-link text-center" href="/patient/dashboard">
+                    <Link className="nav-link text-center" href="/patient/dashboard" onClick={closeMenu}>
                       <i className="bi bi-person me-1"></i> Dashboard Pasien
                     </Link>
                   </li>
@@ -93,12 +118,12 @@ const Navbar = () => {
                 {session.user.role === 'MIDWIFE' && (
                   <>
                     <li className="nav-item mx-1">
-                      <Link className="nav-link text-center" href="/midwife/dashboard">
+                      <Link className="nav-link text-center" href="/midwife/dashboard" onClick={closeMenu}>
                         <i className="bi bi-clipboard2-pulse me-1"></i> Dashboard Bidan
                       </Link>
                     </li>
                     <li className="nav-item mx-1">
-                      <Link className="nav-link text-center" href="/midwife/dailycheck">
+                      <Link className="nav-link text-center" href="/midwife/dailycheck" onClick={closeMenu}>
                         <i className="bi bi-clipboard2-check me-1"></i> Daily Check
                       </Link>
                     </li>
@@ -107,7 +132,7 @@ const Navbar = () => {
                 {session.user.role === 'SUPER_ADMIN' && (
                   <>
                     <li className="nav-item mx-1">
-                      <Link className="nav-link text-center" href="/superadmin/dashboard">
+                      <Link className="nav-link text-center" href="/superadmin/dashboard" onClick={closeMenu}>
                         <i className="bi bi-shield-lock me-1"></i> Dashboard Super Admin
                       </Link>
                     </li>
@@ -127,7 +152,7 @@ const Navbar = () => {
                         <i className="bi bi-shield me-2"></i>Role: {getRoleName(session.user.role)}
                       </Dropdown.Item>
                       <Dropdown.Divider />
-                      <Dropdown.Item onClick={() => signOut()} className="text-danger">
+                      <Dropdown.Item onClick={handleLogout} className="text-danger">
                         <i className="bi bi-box-arrow-right me-2"></i>Logout
                       </Dropdown.Item>
                     </Dropdown.Menu>

@@ -36,6 +36,18 @@ interface PatientDetails {
   }[];
 }
 
+const getHbClassification = (hb: number) => {
+  if (hb >= 11) {
+    return { text: 'Normal (Tidak Anemia)', variant: 'success' };
+  } else if (hb >= 9 && hb <= 10.9) {
+    return { text: 'Anemia Ringan', variant: 'warning' };
+  } else if (hb >= 7 && hb <= 8.9) {
+    return { text: 'Anemia Sedang', variant: 'danger' };
+  } else {
+    return { text: 'Anemia Berat', variant: 'danger' };
+  }
+};
+
 const PatientDashboardPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -45,7 +57,7 @@ const PatientDashboardPage = () => {
   const [errorPatientDetails, setErrorPatientDetails] = useState<string | null>(null);
   const [showReminder, setShowReminder] = useState(false);
   const [alreadyCheckedToday, setAlreadyCheckedToday] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isAlarmPlaying, setIsAlarmPlaying] = useState(false);
   const hasPlayedRef = useRef(false);
 
   const checkTodaySubmission = useCallback((checks?: { date: string }[]) => {
@@ -69,6 +81,17 @@ const PatientDashboardPage = () => {
   const handleDailyCheckSubmitted = useCallback(() => {
     setRefreshHistory(prev => prev + 1);
     setAlreadyCheckedToday(true);
+    setShowReminder(false);
+    hasPlayedRef.current = false;
+    setIsAlarmPlaying(false);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (audioContextRef.current) {
+      try { audioContextRef.current.close(); } catch {}
+      audioContextRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -107,42 +130,262 @@ const PatientDashboardPage = () => {
     fetchPatientDetails();
   }, [session, status, router, refreshHistory, checkTodaySubmission]);
 
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const oscillator1Ref = useRef<OscillatorNode | null>(null);
+  const oscillator2Ref = useRef<OscillatorNode | null>(null);
+  const gain1Ref = useRef<GainNode | null>(null);
+  const gain2Ref = useRef<GainNode | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isPlayingRef = useRef(false);
+
+  const playNotificationSound = useCallback(() => {
+    if (isPlayingRef.current) return;
+
+    try {
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      audioContextRef.current = new AudioContextClass();
+      const audioContext = audioContextRef.current;
+
+      isPlayingRef.current = true;
+      setIsAlarmPlaying(true);
+
+      let toggle = true;
+
+      const playTone = () => {
+        if (!isPlayingRef.current || !audioContext) return;
+
+        if (toggle) {
+          if (oscillator1Ref.current) {
+            try { oscillator1Ref.current.stop(); } catch {}
+            oscillator1Ref.current = null;
+          }
+          if (gain1Ref.current) {
+            try { gain1Ref.current.disconnect(); } catch {}
+            gain1Ref.current = null;
+          }
+
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+          osc.frequency.value = 880;
+          osc.type = 'square';
+          gain.gain.value = 0.3;
+          osc.start();
+          oscillator1Ref.current = osc;
+          gain1Ref.current = gain;
+        } else {
+          if (oscillator2Ref.current) {
+            try { oscillator2Ref.current.stop(); } catch {}
+            oscillator2Ref.current = null;
+          }
+          if (gain2Ref.current) {
+            try { gain2Ref.current.disconnect(); } catch {}
+            gain2Ref.current = null;
+          }
+
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+          osc.frequency.value = 660;
+          osc.type = 'square';
+          gain.gain.value = 0.3;
+          osc.start();
+          oscillator2Ref.current = osc;
+          gain2Ref.current = gain;
+        }
+        toggle = !toggle;
+      };
+
+      playTone();
+      intervalRef.current = setInterval(playTone, 300);
+
+    } catch (e) {
+      console.error('Audio play error:', e);
+      isPlayingRef.current = false;
+      setIsAlarmPlaying(false);
+    }
+  }, []);
+
+  const stopNotificationSound = useCallback(() => {
+    isPlayingRef.current = false;
+    setIsAlarmPlaying(false);
+
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    try {
+      if (oscillator1Ref.current) {
+        oscillator1Ref.current.stop();
+        oscillator1Ref.current.disconnect();
+        oscillator1Ref.current = null;
+      }
+      if (oscillator2Ref.current) {
+        oscillator2Ref.current.stop();
+        oscillator2Ref.current.disconnect();
+        oscillator2Ref.current = null;
+      }
+      if (gain1Ref.current) {
+        gain1Ref.current.disconnect();
+        gain1Ref.current = null;
+      }
+      if (gain2Ref.current) {
+        gain2Ref.current.disconnect();
+        gain2Ref.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+    } catch (e) {
+      console.error('Error stopping audio:', e);
+    }
+  }, []);
+
+  const showBrowserNotification = useCallback(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('🌸 ALMA - Reminder Minum TTD', {
+        body: 'Jangan lupa minum Tablet Tambah Darah (TTD) atau MMS hari ini ya Bund!',
+        icon: '/favicon.ico',
+        tag: 'alma-reminder',
+        requireInteraction: true,
+      });
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          new Notification('🌸 ALMA - Reminder Minum TTD', {
+            body: 'Jangan lupa minum Tablet Tambah Darah (TTD) atau MMS hari ini ya Bund!',
+            icon: '/favicon.ico',
+            tag: 'alma-reminder',
+            requireInteraction: true,
+          });
+        }
+      });
+    }
+  }, []);
+
   useEffect(() => {
-    const checkAndNotify = () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      stopNotificationSound();
+      hasPlayedRef.current = false;
+    }
+  }, [status, stopNotificationSound]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      stopNotificationSound();
+      hasPlayedRef.current = false;
+      setShowReminder(false);
+    }
+  }, []);
+
+  const checkAndNotifyRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const performNotify = () => {
+      if (!session || session.user?.role !== 'PATIENT') return;
+      if (hasPlayedRef.current) return;
+      if (alreadyCheckedToday) return;
+
       const now = new Date();
       const currentHour = now.getHours();
 
-      if (currentHour >= 19 && !hasPlayedRef.current && !alreadyCheckedToday) {
+      if (currentHour >= 19) {
         setShowReminder(true);
+        setIsAlarmPlaying(true);
+        showBrowserNotification();
         hasPlayedRef.current = true;
+
+        try {
+          const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          if (audioContextRef.current) {
+            try { audioContextRef.current.close(); } catch {}
+          }
+          audioContextRef.current = new AudioContextClass();
+          const audioContext = audioContextRef.current;
+          let toggle = true;
+
+          const playTone = () => {
+            if (!hasPlayedRef.current || !audioContext) return;
+
+            if (toggle) {
+              if (oscillator1Ref.current) {
+                try { oscillator1Ref.current.stop(); } catch {}
+                oscillator1Ref.current = null;
+              }
+              if (gain1Ref.current) {
+                try { gain1Ref.current.disconnect(); } catch {}
+                gain1Ref.current = null;
+              }
+
+              const osc = audioContext.createOscillator();
+              const gain = audioContext.createGain();
+              osc.connect(gain);
+              gain.connect(audioContext.destination);
+              osc.frequency.value = 880;
+              osc.type = 'square';
+              gain.gain.value = 0.3;
+              osc.start();
+              oscillator1Ref.current = osc;
+              gain1Ref.current = gain;
+            } else {
+              if (oscillator2Ref.current) {
+                try { oscillator2Ref.current.stop(); } catch {}
+                oscillator2Ref.current = null;
+              }
+              if (gain2Ref.current) {
+                try { gain2Ref.current.disconnect(); } catch {}
+                gain2Ref.current = null;
+              }
+
+              const osc = audioContext.createOscillator();
+              const gain = audioContext.createGain();
+              osc.connect(gain);
+              gain.connect(audioContext.destination);
+              osc.frequency.value = 660;
+              osc.type = 'square';
+              gain.gain.value = 0.3;
+              osc.start();
+              oscillator2Ref.current = osc;
+              gain2Ref.current = gain;
+            }
+            toggle = !toggle;
+          };
+
+          playTone();
+          intervalRef.current = setInterval(playTone, 300);
+        } catch (e) {
+          console.error('Audio play error:', e);
+        }
       }
     };
 
-    checkAndNotify();
+    checkAndNotifyRef.current = performNotify;
+    performNotify();
 
-    const interval = setInterval(checkAndNotify, 60000);
-    return () => clearInterval(interval);
-  }, [alreadyCheckedToday]);
-
-  useEffect(() => {
-    if (showReminder) {
-      audioRef.current = new Audio('https://www.youtube.com/watch?v=RJZYCIRRKgo');
-      try {
-        audioRef.current.play().catch(() => {});
-      } catch {}
-
-      const interval = setInterval(() => {
-        try {
-          audioRef.current?.play().catch(() => {});
-        } catch {}
-      }, 60000);
-
-      return () => {
-        clearInterval(interval);
-        audioRef.current?.pause();
-      };
-    }
-  }, [showReminder]);
+    const interval = setInterval(performNotify, 30000);
+    return () => {
+      clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (audioContextRef.current) {
+        try { audioContextRef.current.close(); } catch {}
+        audioContextRef.current = null;
+      }
+      hasPlayedRef.current = false;
+    };
+  }, [alreadyCheckedToday, showBrowserNotification, session]);
 
   if (status === 'loading' || loadingPatientDetails) {
     return (
@@ -184,20 +427,140 @@ const PatientDashboardPage = () => {
       <div style={{ backgroundColor: '#FFF5F8', minHeight: '100vh' }} className="py-4">
         <Container>
           {showReminder && !alreadyCheckedToday && (
-            <Alert variant="warning" className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <Alert variant="danger" className="d-flex align-items-center justify-content-between flex-wrap gap-2" style={{ fontSize: '1.1rem', borderRadius: '12px', boxShadow: '0 4px 20px rgba(220, 53, 69, 0.4)' }}>
               <div className="d-flex align-items-center flex-grow-1">
-                <i className="bi bi-alarm-fill me-2 fs-4 text-danger"></i>
+                <i className={`bi bi-bell-fill me-3 fs-2 ${isAlarmPlaying ? 'animate-bell' : ''}`}></i>
                 <div>
-                  <strong className="d-block">Ayoo Bunddaa 🌸</strong>
-                  <span>Jangan Lupa Minum Tablet Tambah Darah (TTD) atau MMS yaaa!!!</span>
+                  <strong className="d-block fs-5">🔔 Reminder Minum TTD! 🔔</strong>
+                  <span>Jangan lupa minum Tablet Tambah Darah (TTD) atau MMS ya Bund!</span>
                 </div>
               </div>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setShowReminder(false)}
-                aria-label="Close"
-              ></button>
+              <div className="d-flex gap-2 align-items-center">
+                {isAlarmPlaying ? (
+                  <button
+                    type="button"
+                    className="btn btn-lg btn-danger fw-bold"
+                    onClick={() => {
+                      hasPlayedRef.current = false;
+                      setIsAlarmPlaying(false);
+                      setShowReminder(false);
+                      if (intervalRef.current) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                      }
+                      if (oscillator1Ref.current) {
+                        try { oscillator1Ref.current.stop(); } catch {}
+                        oscillator1Ref.current = null;
+                      }
+                      if (oscillator2Ref.current) {
+                        try { oscillator2Ref.current.stop(); } catch {}
+                        oscillator2Ref.current = null;
+                      }
+                      if (audioContextRef.current) {
+                        try { audioContextRef.current.close(); } catch {}
+                        audioContextRef.current = null;
+                      }
+                    }}
+                    title="Matikan alarm"
+                  >
+                    <i className="bi bi-stop-fill me-2"></i>
+                    MATIKAN ALARM
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-lg btn-outline-primary"
+                    onClick={() => {
+                      setIsAlarmPlaying(true);
+                      hasPlayedRef.current = true;
+
+                      try {
+                        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                        if (audioContextRef.current) {
+                          try { audioContextRef.current.close(); } catch {}
+                        }
+                        audioContextRef.current = new AudioContextClass();
+                        const audioContext = audioContextRef.current;
+                        let toggle = true;
+
+                        const playTone = () => {
+                          if (!hasPlayedRef.current || !audioContext) return;
+
+                          if (toggle) {
+                            if (oscillator1Ref.current) {
+                              try { oscillator1Ref.current.stop(); } catch {}
+                              oscillator1Ref.current = null;
+                            }
+                            if (gain1Ref.current) {
+                              try { gain1Ref.current.disconnect(); } catch {}
+                              gain1Ref.current = null;
+                            }
+
+                            const osc = audioContext.createOscillator();
+                            const gain = audioContext.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioContext.destination);
+                            osc.frequency.value = 880;
+                            osc.type = 'square';
+                            gain.gain.value = 0.3;
+                            osc.start();
+                            oscillator1Ref.current = osc;
+                            gain1Ref.current = gain;
+                          } else {
+                            if (oscillator2Ref.current) {
+                              try { oscillator2Ref.current.stop(); } catch {}
+                              oscillator2Ref.current = null;
+                            }
+                            if (gain2Ref.current) {
+                              try { gain2Ref.current.disconnect(); } catch {}
+                              gain2Ref.current = null;
+                            }
+
+                            const osc = audioContext.createOscillator();
+                            const gain = audioContext.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioContext.destination);
+                            osc.frequency.value = 660;
+                            osc.type = 'square';
+                            gain.gain.value = 0.3;
+                            osc.start();
+                            oscillator2Ref.current = osc;
+                            gain2Ref.current = gain;
+                          }
+                          toggle = !toggle;
+                        };
+
+                        playTone();
+                        intervalRef.current = setInterval(playTone, 300);
+                      } catch (e) {
+                        console.error('Audio play error:', e);
+                      }
+                    }}
+                    title="Putar alarm"
+                  >
+                    <i className="bi bi-volume-up me-2"></i>
+                    PUTAR ALARM
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn-close btn-close-lg"
+                  onClick={() => {
+                    hasPlayedRef.current = false;
+                    setIsAlarmPlaying(false);
+                    setShowReminder(false);
+                    if (intervalRef.current) {
+                      clearInterval(intervalRef.current);
+                      intervalRef.current = null;
+                    }
+                    if (audioContextRef.current) {
+                      try { audioContextRef.current.close(); } catch {}
+                      audioContextRef.current = null;
+                    }
+                  }}
+                  aria-label="Close"
+                ></button>
+              </div>
             </Alert>
           )}
 
@@ -207,7 +570,7 @@ const PatientDashboardPage = () => {
                 <i className="bi bi-heart-pulse me-2"></i>
                 Selamat Datang, {patientDetails.name}!
               </h3>
-              <p className="text-muted mb-0">Dashboard Pasien - Ayo Lawan Anemia</p>
+              <p className="text-muted mb-0">Dashboard Pasien - Alarm Lawan Anemia</p>
               {alreadyCheckedToday && (
                 <Badge bg="success" className="mt-2 px-3 py-2">
                   <i className="bi bi-check-circle me-1"></i>
@@ -254,11 +617,25 @@ const PatientDashboardPage = () => {
                       <small className="text-muted">HPL</small>
                     </Col>
                     <Col xs={6}>
-                      <Badge bg={patientDetails.lastHemoglobin < 11 ? 'warning' : 'success'} className="badge-alma d-block mb-2 px-3 py-2">
-                        <i className="bi bi-droplet me-1"></i>
-                        {patientDetails.lastHemoglobin} g/dL
-                      </Badge>
-                      <small className="text-muted">HB Terakhir</small>
+                      {patientDetails.lastHemoglobin !== null && patientDetails.lastHemoglobin !== undefined ? (
+                        <>
+                          <Badge bg={getHbClassification(patientDetails.lastHemoglobin).variant} className="badge-alma d-block mb-2 px-3 py-2">
+                            <i className="bi bi-droplet me-1"></i>
+                            {patientDetails.lastHemoglobin} g/dL
+                          </Badge>
+                          <small className="text-muted">
+                            {getHbClassification(patientDetails.lastHemoglobin).text}
+                          </small>
+                        </>
+                      ) : (
+                        <>
+                          <Badge bg="secondary" className="badge-alma d-block mb-2 px-3 py-2">
+                            <i className="bi bi-droplet me-1"></i>
+                            N/A
+                          </Badge>
+                          <small className="text-muted">HB Terakhir</small>
+                        </>
+                      )}
                     </Col>
                     <Col xs={6}>
                       <Badge bg={patientDetails.hasMiscarriage ? 'warning' : 'secondary'} className="badge-alma d-block mb-2 px-3 py-2">

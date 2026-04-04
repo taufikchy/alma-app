@@ -164,7 +164,7 @@ const LoginPage = () => {
 
               <p className="text-center text-muted small mt-4">
                 <i className="bi bi-heart-pulse-fill text-alma-pink me-1"></i>
-                ALMA - Ayo Lawan Anemia
+                ALMA - Alarm Lawan Anemia
               </p>
             </div>
           </div>

@@ -24,6 +24,18 @@ interface Patient {
   lastHemoglobin: number;
 }
 
+const getHbClassification = (hb: number) => {
+  if (hb >= 11) {
+    return { text: 'Normal (Tidak Anemia)', variant: 'success' };
+  } else if (hb >= 9 && hb <= 10.9) {
+    return { text: 'Anemia Ringan', variant: 'warning' };
+  } else if (hb >= 7 && hb <= 8.9) {
+    return { text: 'Anemia Sedang', variant: 'danger' };
+  } else {
+    return { text: 'Anemia Berat', variant: 'danger' };
+  }
+};
+
 const MidwifeDashboardPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -103,12 +115,6 @@ const MidwifeDashboardPage = () => {
   const handleCancelDelete = () => {
     setShowDeleteModal(false);
     setPatientToDelete(null);
-  };
-
-  const getHemoglobinStatus = (hb: number) => {
-    if (hb < 7) return { variant: 'danger', text: 'Rendah' };
-    if (hb >= 7 && hb < 11) return { variant: 'warning', text: 'Kurang' };
-    return { variant: 'success', text: 'Normal' };
   };
 
   if (status === 'loading' || loading) {
@@ -195,7 +201,6 @@ const MidwifeDashboardPage = () => {
                     </thead>
                     <tbody>
                       {patients.map((patient, index) => {
-                        const hbStatus = getHemoglobinStatus(patient.lastHemoglobin);
                         return (
                           <tr key={patient.id}>
                             <td className="text-center">{index + 1}</td>
@@ -215,8 +220,8 @@ const MidwifeDashboardPage = () => {
                             </td>
                             <td className="text-center">{patient.pregnancyOrder}x</td>
                             <td className="text-center">
-                              <Badge bg={hbStatus.variant} className="badge-alma">
-                                {patient.lastHemoglobin}
+                              <Badge bg={getHbClassification(patient.lastHemoglobin).variant}>
+                                {patient.lastHemoglobin} g/dL ({getHbClassification(patient.lastHemoglobin).text})
                               </Badge>
                             </td>
                             <td className="text-center">

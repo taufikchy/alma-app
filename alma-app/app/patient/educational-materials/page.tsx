@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Container, Card, Alert, Spinner, Accordion, Badge } from 'react-bootstrap';
+import { Container, Card, Alert, Spinner, Accordion, Badge, Row, Col } from 'react-bootstrap';
 
 interface EducationalMaterial {
   id: string;
@@ -24,7 +24,7 @@ const EducationalMaterialsPage = () => {
 
   useEffect(() => {
     const fetchMaterials = async () => {
-      if (status === 'authenticated' && (session?.user?.role === 'PATIENT' || session?.user?.role === 'MIDWIFE')) {
+      if (status === 'authenticated' && (session?.user?.role === 'PATIENT' || session?.user?.role === 'MIDWIFE' || session?.user?.role === 'SUPER_ADMIN')) {
         try {
           const response = await fetch('/api/educational-materials', { credentials: 'include' });
           if (!response.ok) {
@@ -57,7 +57,7 @@ const EducationalMaterialsPage = () => {
     );
   }
 
-  if (!session || (session.user.role !== 'PATIENT' && session.user.role !== 'MIDWIFE')) {
+  if (!session || (session.user.role !== 'PATIENT' && session.user.role !== 'MIDWIFE' && session.user.role !== 'SUPER_ADMIN')) {
     return null;
   }
 
@@ -65,7 +65,7 @@ const EducationalMaterialsPage = () => {
     <Layout>
       <div style={{ backgroundColor: '#FFF5F8', minHeight: '100vh' }} className="py-4">
         <Container>
-          <Card className="mb-4 border-0 shadow-sm">
+          <Card className="mb-4 border-0 shadow-sm" style={{ borderRadius: '12px' }}>
             <Card.Body className="text-center py-4">
               <h2 className="fw-bold text-alma-green mb-2">
                 <i className="bi bi-book me-2"></i>
@@ -78,55 +78,61 @@ const EducationalMaterialsPage = () => {
           {error && <Alert variant="danger" className="text-center">{error}</Alert>}
 
           {materials.length === 0 ? (
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm" style={{ borderRadius: '12px' }}>
               <Card.Body className="text-center py-5">
                 <i className="bi bi-book fs-1 text-muted d-block mb-3"></i>
                 <p className="text-muted mb-0">Belum ada materi edukasi yang tersedia.</p>
               </Card.Body>
             </Card>
           ) : (
-            <Card className="border-0 shadow-sm">
-              <Accordion defaultActiveKey="0">
+            <Card className="border-0 shadow-sm" style={{ borderRadius: '12px', overflow: 'hidden' }}>
+              <Accordion>
                 {materials.map((material, index) => (
                   <Accordion.Item key={material.id} eventKey={String(index)}>
-                    <Accordion.Header className="fw-bold">
-                      <i className="bi bi-journal-text me-2 text-alma-green"></i>
-                      {material.title}
+                    <Accordion.Header
+                      style={{ backgroundColor: index % 2 === 0 ? '#E8F5E9' : '#FFF3E0' }}
+                      className="fw-bold"
+                    >
+                      <span className="d-flex align-items-center">
+                        <i className={`bi ${index === 0 ? 'bi-droplet-fill' : index === 1 ? 'bi-exclamation-triangle-fill' : index === 2 ? 'bi-heart-pulse' : index === 3 ? 'bi-exclamation-circle-fill' : 'bi-shield-check'} me-2 fs-5`}
+                          style={{ color: index === 0 ? '#E91E63' : index === 1 ? '#FF9800' : index === 2 ? '#E91E63' : index === 3 ? '#FF9800' : '#2196F3' }}
+                        ></i>
+                        {material.title}
+                      </span>
                     </Accordion.Header>
                     <Accordion.Body>
                       <div className="mb-3" dangerouslySetInnerHTML={{ __html: material.content }} />
-                      {material.videoUrl1 && (
-                        <div className="mt-3 text-center">
-                          <Badge bg="info" className="badge-alma mb-2 px-3 py-2">
+
+                      {(material.videoUrl1 || material.videoUrl2) && (
+                        <div className="mt-4">
+                          <Badge bg="info" className="mb-3 px-3 py-2" style={{ fontSize: '0.9rem' }}>
                             <i className="bi bi-play-circle me-1"></i>
-                            Video Terkait 1
+                            Video Edukasi
                           </Badge>
-                          <div className="embed-responsive embed-responsive-16by9">
-                            <iframe
-                              className="embed-responsive-item w-100 rounded"
-                              style={{ height: '300px' }}
-                              src={`https://www.youtube.com/embed/${material.videoUrl1.split('v=')[1]?.split('&')[0]}`}
-                              allowFullScreen
-                              title={material.title}
-                            ></iframe>
-                          </div>
-                        </div>
-                      )}
-                      {material.videoUrl2 && (
-                        <div className="mt-3 text-center">
-                          <Badge bg="info" className="badge-alma mb-2 px-3 py-2">
-                            <i className="bi bi-play-circle me-1"></i>
-                            Video Terkait 2
-                          </Badge>
-                          <div className="embed-responsive embed-responsive-16by9">
-                            <iframe
-                              className="embed-responsive-item w-100 rounded"
-                              style={{ height: '300px' }}
-                              src={`https://www.youtube.com/embed/${material.videoUrl2.split('v=')[1]?.split('&')[0]}`}
-                              allowFullScreen
-                              title={material.title}
-                            ></iframe>
-                          </div>
+                          <Row>
+                            {material.videoUrl1 && (
+                              <Col md={6} className="mb-3">
+                                <div className="ratio ratio-16x9 rounded overflow-hidden shadow-sm">
+                                  <iframe
+                                    src={`https://www.youtube.com/embed/${material.videoUrl1}`}
+                                    allowFullScreen
+                                    title="Video Edukasi 1"
+                                  ></iframe>
+                                </div>
+                              </Col>
+                            )}
+                            {material.videoUrl2 && (
+                              <Col md={6} className="mb-3">
+                                <div className="ratio ratio-16x9 rounded overflow-hidden shadow-sm">
+                                  <iframe
+                                    src={`https://www.youtube.com/embed/${material.videoUrl2}`}
+                                    allowFullScreen
+                                    title="Video Edukasi 2"
+                                  ></iframe>
+                                </div>
+                              </Col>
+                            )}
+                          </Row>
                         </div>
                       )}
                     </Accordion.Body>
@@ -135,6 +141,15 @@ const EducationalMaterialsPage = () => {
               </Accordion>
             </Card>
           )}
+
+          <Card className="mt-4 border-0 shadow-sm" style={{ borderRadius: '12px', backgroundColor: '#E3F2FD' }}>
+            <Card.Body className="text-center py-3">
+              <i className="bi bi-info-circle me-2 text-primary"></i>
+              <small className="text-muted">
+                Klik setiap materi untuk melihat penjelasan lengkap
+              </small>
+            </Card.Body>
+          </Card>
         </Container>
       </div>
     </Layout>
