@@ -6,6 +6,9 @@ import AuthSessionProvider from "./providers/AuthSessionProvider";
 export const metadata: Metadata = {
   title: "ALMA - Aplikasi Layanan Manajemen Antenatal",
   description: "ALMA adalah aplikasi manajemen kesehatan ibu hamil yang membantu bidan dan pasien dalam memantau kesehatan selama masa kehamilan.",
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({

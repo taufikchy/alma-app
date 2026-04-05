@@ -51,7 +51,7 @@ const LoginPage = () => {
                 <Card.Body className="p-4">
                   <div className="text-center mb-4">
                     <h3 className="fw-bold text-alma-green mb-1">
-                      <i className="bi bi-bell-fill text-alma-pink me-2"></i> ALMA
+                      <img src="/logo.png" alt="ALMA Logo" style={{ height: '40px', marginRight: '8px' }} /> ALMA
                     </h3>
                     <p className="text-muted small mb-0">Masuk ke Akun Anda</p>
                   </div>

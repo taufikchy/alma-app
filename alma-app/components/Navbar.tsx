@@ -85,8 +85,10 @@ const Navbar = ({ isAlarmPlaying = false }: NavbarProps) => {
     <nav className="navbar navbar-expand-lg navbar-alma sticky-top" ref={navRef}>
       <div className="container">
         <Link className="navbar-brand d-flex align-items-center" href="/">
+          <span className={isAlarmPlaying ? 'animate-bell' : ''} style={{ display: 'inline-flex' }}>
+            <img src="/logo.png" alt="ALMA Logo" style={{ height: '32px', marginRight: '8px' }} />
+          </span>
           <span className="fs-4 fw-bold text-alma-green">ALMA</span>
-          <i className={`bi bi-bell-fill fs-4 text-alma-pink ms-1 ${isAlarmPlaying ? 'animate-bell' : ''}`}></i>
         </Link>
         <button
           className={`navbar-toggler border-0 ${isMenuOpen ? 'collapsed' : ''}`}

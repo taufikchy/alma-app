@@ -57,6 +57,12 @@ const DailyCheckHistory: React.FC<DailyCheckHistoryProps> = ({ refreshTrigger = 
     }
   }, [patientId, fetchDailyChecks, initialData]);
 
+  useEffect(() => {
+    if (refreshTrigger > 0 && patientId) {
+      fetchDailyChecks();
+    }
+  }, [refreshTrigger, patientId, fetchDailyChecks]);
+
   if (loading) {
     return (
       <Card className="shadow-sm">

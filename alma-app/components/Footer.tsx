@@ -7,7 +7,8 @@ const Footer = () => {
         <div className="row text-center g-4">
           <div className="col-12 col-md-4">
             <h5 className="footer-title mb-2">
-              <span className="text-alma-green fw-bold">ALMA</span> <i className="bi bi-bell-fill text-alma-pink"></i>
+              <img src="/logo.png" alt="ALMA Logo" style={{ height: '24px', marginRight: '8px' }} />
+              <span className="text-alma-green fw-bold">ALMA</span>
             </h5>
             <p className="text-muted mb-0 small">
               Aplikasi Layanan Manajemen Antenatal untuk kesehatan ibu hamil yang lebih baik.

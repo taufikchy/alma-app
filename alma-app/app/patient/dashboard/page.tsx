@@ -83,14 +83,30 @@ const PatientDashboardPage = () => {
     setAlreadyCheckedToday(true);
     setShowReminder(false);
     hasPlayedRef.current = false;
+    alarmDismissedByUserRef.current = false;
     setIsAlarmPlaying(false);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    if (audioContextRef.current) {
-      try { audioContextRef.current.close(); } catch {}
-      audioContextRef.current = null;
+    
+    if (audioRef.current) {
+      const audio = audioRef.current;
+      const currentPromise = playPromiseRef.current;
+      
+      const doPause = () => {
+        audio.pause();
+        audio.currentTime = 0;
+      };
+      
+      if (currentPromise) {
+        currentPromise.then(doPause).catch(doPause);
+      } else {
+        doPause();
+      }
+      
+      audioRef.current = null;
+      playPromiseRef.current = null;
     }
   }, []);
 
@@ -130,58 +146,27 @@ const PatientDashboardPage = () => {
     fetchPatientDetails();
   }, [session, status, router, refreshHistory, checkTodaySubmission]);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPlayingRef = useRef(false);
+  const playPromiseRef = useRef<Promise<void> | null>(null);
+  const alarmDismissedByUserRef = useRef(false);
 
   const playNotificationSound = useCallback(() => {
     if (isPlayingRef.current) return;
 
     try {
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      audioContextRef.current = new AudioContextClass();
-      const audioContext = audioContextRef.current;
-
-      isPlayingRef.current = true;
-      setIsAlarmPlaying(true);
-
-      const createOscillator = (frequency: number, type: OscillatorType, gainValue: number) => {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        oscillator.frequency.value = frequency;
-        oscillator.type = type;
-        gainNode.gain.value = gainValue;
-
-        return { oscillator, gainNode };
-      };
-
-      const startAlarmTone = () => {
-        if (!isPlayingRef.current || !audioContext) return;
-
-        // Sound 1
-        const { oscillator: osc1, gainNode: gain1 } = createOscillator(880, 'sine', 0.3);
-        osc1.start(audioContext.currentTime);
-        gain1.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
-        osc1.stop(audioContext.currentTime + 0.5);
-
-        // Sound 2
-        const { oscillator: osc2, gainNode: gain2 } = createOscillator(660, 'sine', 0.3);
-        osc2.start(audioContext.currentTime + 0.6);
-        gain2.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1.1);
-        osc2.stop(audioContext.currentTime + 1.1);
-
-        // Loop if still playing
-        if (isPlayingRef.current) {
-          intervalRef.current = setTimeout(startAlarmTone, 1200); // Repeat after 1.2 seconds
-        }
-      };
-
-      startAlarmTone();
-
+      audioRef.current = new Audio('/notification.mp3');
+      audioRef.current.loop = true;
+      playPromiseRef.current = audioRef.current.play();
+      playPromiseRef.current.then(() => {
+        isPlayingRef.current = true;
+        setIsAlarmPlaying(true);
+      }).catch(e => {
+        console.error('Audio play error:', e);
+        isPlayingRef.current = false;
+        setIsAlarmPlaying(false);
+      });
     } catch (e) {
       console.error('Audio play error:', e);
       isPlayingRef.current = false;
@@ -199,9 +184,23 @@ const PatientDashboardPage = () => {
     }
 
     try {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
+      if (audioRef.current) {
+        const audio = audioRef.current;
+        const currentPromise = playPromiseRef.current;
+        
+        const doPause = () => {
+          audio.pause();
+          audio.currentTime = 0;
+        };
+        
+        if (currentPromise) {
+          currentPromise.then(doPause).catch(doPause);
+        } else {
+          doPause();
+        }
+        
+        audioRef.current = null;
+        playPromiseRef.current = null;
       }
     } catch (e) {
       console.error('Error stopping audio:', e);
@@ -258,6 +257,7 @@ const PatientDashboardPage = () => {
       if (!session || session.user?.role !== 'PATIENT') return;
       if (hasPlayedRef.current) return;
       if (alreadyCheckedToday) return;
+      if (alarmDismissedByUserRef.current) return;
 
       const now = new Date();
       const currentHour = now.getHours();
@@ -267,6 +267,7 @@ const PatientDashboardPage = () => {
         playNotificationSound();
         showBrowserNotification();
         hasPlayedRef.current = true;
+        alarmDismissedByUserRef.current = false;
       }
     };
 
@@ -280,10 +281,24 @@ const PatientDashboardPage = () => {
         clearTimeout(intervalRef.current);
         intervalRef.current = null;
       }
-      if (audioContextRef.current) {
-        try { audioContextRef.current.close(); } catch {}
-        audioContextRef.current = null;
+      
+      const audio = audioRef.current;
+      const currentPromise = playPromiseRef.current;
+      
+      const doPause = () => {
+        if (audio) {
+          try { audio.pause(); audio.currentTime = 0; } catch {}
+        }
+      };
+      
+      if (currentPromise) {
+        currentPromise.then(doPause).catch(doPause);
+      } else {
+        doPause();
       }
+      
+      audioRef.current = null;
+      playPromiseRef.current = null;
       hasPlayedRef.current = false;
     };
   }, [alreadyCheckedToday, showBrowserNotification, session]);
@@ -330,61 +345,91 @@ const PatientDashboardPage = () => {
           {showReminder && !alreadyCheckedToday && (
             <Alert variant="danger" className="d-flex align-items-center justify-content-between flex-wrap gap-2" style={{ fontSize: '1.1rem', borderRadius: '12px', boxShadow: '0 4px 20px rgba(220, 53, 69, 0.4)' }}>
               <div className="d-flex align-items-center flex-grow-1">
-                <i className={`bi bi-bell-fill me-3 fs-2 ${isAlarmPlaying ? 'animate-bell' : ''}`}></i>
+                <i className={`${isAlarmPlaying ? 'animate-bell' : ''}`} style={{ fontSize: '2rem' }}>
+                  <img src="/logo.png" alt="ALMA Logo" style={{ height: '40px' }} />
+                </i>
                 <div>
                   <strong className="d-block fs-5">🔔 Reminder Minum TTD! 🔔</strong>
                   <span>Jangan lupa minum Tablet Tambah Darah (TTD) atau MMS ya Bund!</span>
                 </div>
               </div>
               <div className="d-flex gap-2 align-items-center">
-                {isAlarmPlaying ? (
+                {isAlarmPlaying && (
                   <button
                     type="button"
                     className="btn btn-lg btn-danger fw-bold"
                     onClick={() => {
-                      hasPlayedRef.current = false;
                       setIsAlarmPlaying(false);
                       setShowReminder(false);
                       if (intervalRef.current) {
                         clearTimeout(intervalRef.current);
                         intervalRef.current = null;
                       }
-                      if (audioContextRef.current) {
-                        try { audioContextRef.current.close(); } catch {}
-                        audioContextRef.current = null;
+                      const audio = audioRef.current;
+                      const currentPromise = playPromiseRef.current;
+                      const doPause = () => {
+                        if (audio) {
+                          audio.pause();
+                          audio.currentTime = 0;
+                        }
+                      };
+                      if (currentPromise) {
+                        currentPromise.then(doPause).catch(doPause);
+                      } else {
+                        doPause();
                       }
+                      audioRef.current = null;
+                      playPromiseRef.current = null;
+                      alarmDismissedByUserRef.current = true;
+
+                      setTimeout(() => {
+                        if (!alreadyCheckedToday && session?.user?.role === 'PATIENT') {
+                          setShowReminder(true);
+                          playNotificationSound();
+                          showBrowserNotification();
+                        }
+                      }, 10 * 60 * 1000);
                     }}
                     title="Matikan alarm"
                   >
                     <i className="bi bi-stop-fill me-2"></i>
                     MATIKAN ALARM
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-lg btn-outline-primary"
-                    onClick={playNotificationSound}
-                    title="Putar alarm"
-                  >
-                    <i className="bi bi-volume-up me-2"></i>
-                    PUTAR ALARM
-                  </button>
                 )}
                 <button
                   type="button"
                   className="btn-close btn-close-lg"
                   onClick={() => {
-                    hasPlayedRef.current = false;
                     setIsAlarmPlaying(false);
                     setShowReminder(false);
                     if (intervalRef.current) {
-                      clearInterval(intervalRef.current);
+                      clearTimeout(intervalRef.current);
                       intervalRef.current = null;
                     }
-                    if (audioContextRef.current) {
-                      try { audioContextRef.current.close(); } catch {}
-                      audioContextRef.current = null;
+                    const audio = audioRef.current;
+                    const currentPromise = playPromiseRef.current;
+                    const doPause = () => {
+                      if (audio) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                      }
+                    };
+                    if (currentPromise) {
+                      currentPromise.then(doPause).catch(doPause);
+                    } else {
+                      doPause();
                     }
+                    audioRef.current = null;
+                    playPromiseRef.current = null;
+                    alarmDismissedByUserRef.current = true;
+
+                    setTimeout(() => {
+                      if (!alreadyCheckedToday && session?.user?.role === 'PATIENT') {
+                        setShowReminder(true);
+                        playNotificationSound();
+                        showBrowserNotification();
+                      }
+                    }, 10 * 60 * 1000);
                   }}
                   aria-label="Close"
                 ></button>
