@@ -210,7 +210,7 @@ const PatientDashboardPage = () => {
 
   const showBrowserNotification = useCallback(() => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('🌸 ALMA - Reminder Minum TTD', {
+      new Notification('🔔 ALMA - Reminder Minum TTD', {
         body: 'Jangan lupa minum Tablet Tambah Darah (TTD) atau MMS hari ini ya Bund!',
         icon: '/favicon.ico',
         tag: 'alma-reminder',
@@ -219,7 +219,7 @@ const PatientDashboardPage = () => {
     } else if ('Notification' in window && Notification.permission !== 'denied') {
       Notification.requestPermission().then((permission) => {
         if (permission === 'granted') {
-          new Notification('🌸 ALMA - Reminder Minum TTD', {
+          new Notification('🔔 ALMA - Reminder Minum TTD', {
             body: 'Jangan lupa minum Tablet Tambah Darah (TTD) atau MMS hari ini ya Bund!',
             icon: '/favicon.ico',
             tag: 'alma-reminder',

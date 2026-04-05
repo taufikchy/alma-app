@@ -51,7 +51,7 @@ const LoginPage = () => {
                 <Card.Body className="p-4">
                   <div className="text-center mb-4">
                     <h3 className="fw-bold text-alma-green mb-1">
-                      🌸 ALMA
+                      <i className="bi bi-bell-fill text-alma-pink me-2"></i> ALMA
                     </h3>
                     <p className="text-muted small mb-0">Masuk ke Akun Anda</p>
                   </div>
