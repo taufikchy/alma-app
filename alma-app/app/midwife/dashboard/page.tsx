@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Container, Card, Table, Alert, Spinner, Button, Badge, Modal } from 'react-bootstrap';
 import Link from 'next/link';
+import { calculateGestationalAge } from '@/lib/gestationalAge';
 
 interface Patient {
   id: string;
@@ -15,18 +16,17 @@ interface Patient {
   age: number;
   phoneNumber: string;
   address: string;
-  gestationalAge: number;
+  lastMenstrualPeriod: string;
   pregnancyOrder: number;
   hasMiscarriage: boolean;
   miscarriageCount?: number;
-  lastMenstrualPeriod: string;
   estimatedDueDate: string;
   lastHemoglobin: number;
 }
 
 const getHbClassification = (hb: number) => {
   if (hb >= 11) {
-    return { text: 'Normal (Tidak Anemia)', variant: 'success' };
+    return { text: 'Normal', variant: 'success' };
   } else if (hb >= 9 && hb <= 10.9) {
     return { text: 'Anemia Ringan', variant: 'warning' };
   } else if (hb >= 7 && hb <= 8.9) {
@@ -47,7 +47,7 @@ const MidwifeDashboardPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [pendingPatients, setPendingPatients] = useState<{ id: string; name: string; phoneNumber: string; address: string; gestationalAge: number }[]>([]);
+  const [pendingPatients, setPendingPatients] = useState<{ id: string; name: string; phoneNumber: string; address: string; lastMenstrualPeriod: string }[]>([]);
   const [showPendingList, setShowPendingList] = useState(true);
 
   useEffect(() => {
@@ -209,7 +209,7 @@ const MidwifeDashboardPage = () => {
                               <div className="fw-bold text-alma-green">{patient.name}</div>
                               <small className="text-muted">
                                 <i className="bi bi-telephone me-1"></i>
-                                {patient.phoneNumber} • Hamil {patient.gestationalAge} minggu
+                                {patient.phoneNumber} • Hamil {calculateGestationalAge(patient.lastMenstrualPeriod)} minggu
                               </small>
                             </div>
                           </div>
@@ -317,7 +317,7 @@ const MidwifeDashboardPage = () => {
                               {new Date(patient.estimatedDueDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </td>
                             <td className="text-center">
-                              <Badge bg="primary" className="badge-alma">{patient.gestationalAge} mg</Badge>
+                              <Badge bg="primary" className="badge-alma">{calculateGestationalAge(patient.lastMenstrualPeriod)} mg</Badge>
                             </td>
                             <td className="text-center">{patient.pregnancyOrder}x</td>
                             <td className="text-center">

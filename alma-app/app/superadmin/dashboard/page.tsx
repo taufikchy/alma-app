@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Container, Row, Col, Card, Table, Badge, Spinner, Alert, Button, Modal, Form, InputGroup } from 'react-bootstrap';
 import Link from 'next/link';
+import { calculateGestationalAge } from '@/lib/gestationalAge';
 
 interface MidwifeEntry {
   id: string;
@@ -23,7 +24,7 @@ interface PatientEntry {
   name: string;
   husbandName: string;
   age: number;
-  gestationalAge: number;
+  lastMenstrualPeriod: string;
   phoneNumber: string;
   address: string;
   estimatedDueDate: string;
@@ -524,7 +525,7 @@ const SuperAdminDashboardPage = () => {
                       <td className="text-center">{index + 1}</td>
                       <td className="fw-semibold">{patient.name}</td>
                       <td className="text-center">{patient.age} tahun</td>
-                      <td className="text-center">{patient.gestationalAge} minggu</td>
+                      <td className="text-center">{calculateGestationalAge(patient.lastMenstrualPeriod)} minggu</td>
                       <td className="text-center">{patient.phoneNumber}</td>
                       <td className="text-center">
                         <Badge bg={patient.lastHemoglobin < 11 ? 'danger' : 'success'}>

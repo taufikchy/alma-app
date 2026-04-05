@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { calculateGestationalAge } from '@/lib/gestationalAge';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -21,7 +22,6 @@ export async function POST(request: Request) {
     age,
     phoneNumber,
     address,
-    gestationalAge,
     pregnancyOrder,
     hasMiscarriage,
     miscarriageCount,
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     lastHemoglobin,
   } = await request.json();
 
-  if (!username || !password || !name || !phoneNumber || !address || !gestationalAge || !pregnancyOrder || !lastMenstrualPeriod || !estimatedDueDate || !lastHemoglobin) {
+  if (!username || !password || !name || !phoneNumber || !address || !pregnancyOrder || !lastMenstrualPeriod || !estimatedDueDate || !lastHemoglobin) {
     return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
   }
 
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
           age: parseInt(age),
           phoneNumber,
           address,
-          gestationalAge: parseInt(gestationalAge),
+          gestationalAge: calculateGestationalAge(lastMenstrualPeriod),
           pregnancyOrder: parseInt(pregnancyOrder),
           hasMiscarriage,
           miscarriageCount: hasMiscarriage ? parseInt(miscarriageCount || '0') : null,

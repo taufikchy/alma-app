@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         name: patient.name,
         phoneNumber: patient.phoneNumber,
         address: patient.address,
-        gestationalAge: patient.gestationalAge,
+        lastMenstrualPeriod: patient.lastMenstrualPeriod,
       }));
 
     return NextResponse.json(patientsWithPendingChecks, { status: 200 });

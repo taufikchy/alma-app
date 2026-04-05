@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Container, Card, Alert, Spinner, Row, Col, Button, Badge } from 'react-bootstrap';
 import DailyCheckHistory from '@/components/DailyCheckHistory';
 import Link from 'next/link';
+import { calculateGestationalAge } from '@/lib/gestationalAge';
 
 interface DailyCheck {
   id: string;
@@ -182,7 +183,7 @@ const PatientDetailPage = ({ params }: { params: Promise<{ patientId: string }> 
                       <tr>
                         <td className="text-muted text-start">Usia Kehamilan</td>
                         <td className="text-end">
-                          <Badge bg="primary" className="badge-alma">{patient.gestationalAge} minggu</Badge>
+                          <Badge bg="primary" className="badge-alma">{calculateGestationalAge(patient.lastMenstrualPeriod)} minggu</Badge>
                         </td>
                       </tr>
                       <tr>

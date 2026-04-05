@@ -66,7 +66,7 @@ export async function GET(request: Request) {
       id: dc.id,
       patientId: dc.patientId,
       patientName: dc.patient.name,
-      gestationalAge: dc.patient.gestationalAge,
+      lastMenstrualPeriod: dc.patient.lastMenstrualPeriod,
       date: dc.date,
       createdAt: dc.createdAt,
       takenMedication: dc.takenMedication,

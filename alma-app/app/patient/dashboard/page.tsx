@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Container, Row, Col, Card, Alert, Spinner, Badge } from 'react-bootstrap';
 import DailyCheckForm from '@/components/DailyCheckForm';
 import DailyCheckHistory from '@/components/DailyCheckHistory';
+import { calculateGestationalAge, formatGestationalAge } from '@/lib/gestationalAge';
 
 interface PatientDetails {
   id: string;
@@ -38,7 +39,7 @@ interface PatientDetails {
 
 const getHbClassification = (hb: number) => {
   if (hb >= 11) {
-    return { text: 'Normal (Tidak Anemia)', variant: 'success' };
+    return { text: 'Normal', variant: 'success' };
   } else if (hb >= 9 && hb <= 10.9) {
     return { text: 'Anemia Ringan', variant: 'warning' };
   } else if (hb >= 7 && hb <= 8.9) {
@@ -478,7 +479,7 @@ const PatientDashboardPage = () => {
                     <Col xs={6}>
                       <Badge bg="primary" className="badge-alma d-block mb-2 px-3 py-2">
                         <i className="bi bi-calendar3 me-1"></i>
-                        {patientDetails.gestationalAge} Minggu
+                        {calculateGestationalAge(patientDetails.lastMenstrualPeriod)} Minggu
                       </Badge>
                       <small className="text-muted">Usia Kehamilan</small>
                     </Col>

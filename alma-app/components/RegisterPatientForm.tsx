@@ -15,7 +15,6 @@ interface FormData {
   age: string;
   phoneNumber: string;
   address: string;
-  gestationalAge: string;
   pregnancyOrder: string;
   hasMiscarriage: boolean;
   miscarriageCount: string;
@@ -33,7 +32,6 @@ const initialFormData: FormData = {
   age: '',
   phoneNumber: '',
   address: '',
-  gestationalAge: '',
   pregnancyOrder: '',
   hasMiscarriage: false,
   miscarriageCount: '',
@@ -97,12 +95,6 @@ const RegisterPatientForm = () => {
 
     if (formData.phoneNumber.length < 10 || formData.phoneNumber.length > 15) {
       setError('Nomor HP harus antara 10-15 digit');
-      return false;
-    }
-
-    const gestationalAge = parseInt(formData.gestationalAge);
-    if (isNaN(gestationalAge) || gestationalAge < 1 || gestationalAge > 42) {
-      setError('Usia kehamilan harus antara 1-42 minggu');
       return false;
     }
 
@@ -413,22 +405,6 @@ const RegisterPatientForm = () => {
                       Data Kehamilan
                     </h6>
                     <Row className="g-3">
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label className="fw-medium small">Usia Kehamilan (Minggu)</Form.Label>
-                          <Form.Control
-                            type="number"
-                            name="gestationalAge"
-                            placeholder="Contoh: 12"
-                            value={formData.gestationalAge}
-                            onChange={handleChange}
-                            required
-                            min={1}
-                            max={42}
-                            style={{ border: '2px solid #E0E0E0' }}
-                          />
-                        </Form.Group>
-                      </Col>
                       <Col md={6}>
                         <Form.Group>
                           <Form.Label className="fw-medium small">Kehamilan Ke-</Form.Label>

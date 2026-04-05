@@ -7,12 +7,13 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Container, Row, Col, Card, Table, Badge, Spinner, Alert, Form, Button, Modal } from 'react-bootstrap';
 import Image from 'next/image';
+import { calculateGestationalAge } from '@/lib/gestationalAge';
 
 interface DailyCheckEntry {
   id: string;
   patientId: string;
   patientName: string;
-  gestationalAge: number;
+  lastMenstrualPeriod: string;
   date: string;
   createdAt: string;
   takenMedication: boolean;
@@ -238,7 +239,7 @@ const MidwifeDailyCheckPage = () => {
                   <tr key={check.id}>
                     <td>{index + 1}</td>
                     <td className="fw-bold">{check.patientName}</td>
-                    <td>{check.gestationalAge} minggu</td>
+                    <td>{calculateGestationalAge(check.lastMenstrualPeriod)} minggu</td>
                     <td>
                       <div>{new Date(check.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                       <small className="text-muted">
