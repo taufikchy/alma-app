@@ -14,6 +14,7 @@ const Navbar = ({ isAlarmPlaying = false }: NavbarProps) => {
   const { data: session } = useSession();
   const [displayName, setDisplayName] = useState<string>('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -22,6 +23,26 @@ const Navbar = ({ isAlarmPlaying = false }: NavbarProps) => {
     };
     initBootstrap();
   }, []);
+
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      if (session?.user && (session.user.role === 'MIDWIFE' || session.user.role === 'SUPER_ADMIN')) {
+        try {
+          const response = await fetch('/api/midwife/pending-checks/count', { credentials: 'include' });
+          if (response.ok) {
+            const data = await response.json();
+            setPendingCount(data.count);
+          }
+        } catch (err) {
+          console.error('Error fetching pending count:', err);
+        }
+      }
+    };
+
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 60000);
+    return () => clearInterval(interval);
+  }, [session]);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -124,8 +145,9 @@ const Navbar = ({ isAlarmPlaying = false }: NavbarProps) => {
                 {session.user.role === 'MIDWIFE' && (
                   <>
                     <li className="nav-item mx-1">
-                      <Link className="nav-link text-center" href="/midwife/dashboard" onClick={closeMenu}>
+                      <Link className="nav-link text-center d-flex justify-content-center align-items-center gap-2" href="/midwife/dashboard" onClick={closeMenu}>
                         <i className="bi bi-clipboard2-pulse me-1"></i> Dashboard Bidan
+                        {pendingCount > 0 && <span className="badge bg-danger rounded-pill">{pendingCount}</span>}
                       </Link>
                     </li>
                     <li className="nav-item mx-1">
@@ -138,8 +160,9 @@ const Navbar = ({ isAlarmPlaying = false }: NavbarProps) => {
                 {session.user.role === 'SUPER_ADMIN' && (
                   <>
                     <li className="nav-item mx-1">
-                      <Link className="nav-link text-center" href="/superadmin/dashboard" onClick={closeMenu}>
+                      <Link className="nav-link text-center d-flex justify-content-center align-items-center gap-2" href="/superadmin/dashboard" onClick={closeMenu}>
                         <i className="bi bi-shield-lock me-1"></i> Dashboard Super Admin
+                        {pendingCount > 0 && <span className="badge bg-danger rounded-pill">{pendingCount}</span>}
                       </Link>
                     </li>
                   </>

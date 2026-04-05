@@ -47,6 +47,29 @@ const MidwifeDashboardPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingPatients, setPendingPatients] = useState<{ id: string; name: string; phoneNumber: string; address: string; gestationalAge: number }[]>([]);
+  const [showPendingList, setShowPendingList] = useState(true);
+
+  useEffect(() => {
+    const fetchPendingPatients = async () => {
+      if (status === 'authenticated' && session?.user && session.user.role === 'MIDWIFE') {
+        try {
+          const response = await fetch('/api/midwife/pending-checks', { credentials: 'include' });
+          if (response.ok) {
+            const data = await response.json();
+            setPendingPatients(data);
+          }
+        } catch (err) {
+          console.error('Error fetching pending patients:', err);
+        }
+      }
+    };
+
+    fetchPendingPatients();
+    const interval = setInterval(fetchPendingPatients, 60000);
+
+    return () => clearInterval(interval);
+  }, [session, status]);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -136,6 +159,84 @@ const MidwifeDashboardPage = () => {
     <Layout>
       <div style={{ backgroundColor: '#FFF5F8', minHeight: '100vh' }} className="py-4">
         <Container>
+          {pendingPatients.length > 0 && (
+            <Card className="mb-4 border-0 shadow-sm" style={{ borderRadius: '12px', borderLeft: '6px solid #FFC107' }}>
+              <Card.Header
+                className="bg-warning py-3 d-flex align-items-center justify-content-between"
+                style={{ cursor: 'pointer' }}
+                onClick={() => setShowPendingList(!showPendingList)}
+              >
+                <div className="d-flex align-items-center">
+                  <i className="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                  <strong className="fs-5">PERHATIAN: {pendingPatients.length} pasien belum daily check hari ini</strong>
+                </div>
+                <div>
+                  <Button
+                    variant="light"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPendingList(!showPendingList);
+                    }}
+                    className="d-flex align-items-center gap-1"
+                  >
+                    {showPendingList ? (
+                      <>
+                        <span>Tutup</span>
+                        <i className="bi bi-chevron-up"></i>
+                      </>
+                    ) : (
+                      <>
+                        <span>Lihat</span>
+                        <i className="bi bi-chevron-down"></i>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card.Header>
+              {showPendingList && (
+                <Card.Body className="p-0">
+                  <div className="list-group list-group-flush">
+                    {pendingPatients.slice(0, 5).map((patient) => {
+                      const cleanNumber = patient.phoneNumber.replace(/\D/g, '').replace(/^0/, '62');
+                      return (
+                        <div key={patient.id} className="list-group-item d-flex align-items-center justify-content-between py-3 px-4">
+                          <div className="d-flex align-items-center gap-3">
+                            <div className="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px', fontSize: '1.2rem' }}>
+                              {patient.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="fw-bold text-alma-green">{patient.name}</div>
+                              <small className="text-muted">
+                                <i className="bi bi-telephone me-1"></i>
+                                {patient.phoneNumber} • Hamil {patient.gestationalAge} minggu
+                              </small>
+                            </div>
+                          </div>
+                          <Button
+                            variant="success"
+                            size="sm"
+                            href={`https://wa.me/${cleanNumber}?text=Halo%20${encodeURIComponent(patient.name)},%20jangan%20lupa%20untuk%20melakukan%20daily%20check%20hari%20ini%20ya!`}
+                            target="_blank"
+                            className="fw-bold"
+                          >
+                            <i className="bi bi-whatsapp me-2"></i>
+                            Hubungi
+                          </Button>
+                        </div>
+                      );
+                    })}
+                    {pendingPatients.length > 5 && (
+                      <div className="list-group-item text-center text-muted py-3">
+                        <i className="bi bi-three-dots me-2"></i>
+                        ...dan {pendingPatients.length - 5} pasien lainnya
+                      </div>
+                    )}
+                  </div>
+                </Card.Body>
+              )}
+            </Card>
+          )}
           <Card className="border-0 shadow-sm mb-4" style={{ borderRadius: '12px' }}>
             <Card.Body className="py-3 px-4">
               <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
