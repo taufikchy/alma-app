@@ -199,6 +199,14 @@ const MidwifeDashboardPage = () => {
                   <div className="list-group list-group-flush">
                     {pendingPatients.slice(0, 5).map((patient) => {
                       const cleanNumber = patient.phoneNumber.replace(/\D/g, '').replace(/^0/, '62');
+                      
+                      // JURUS PAMUNGKAS: Merakit emoji dari kode matematika murni (Hex)
+                      // Ini 1000% kebal dari error format file ANSI/Windows
+                      const waveEmoji = String.fromCodePoint(0x1F44B, 0x1F3FB); // 👋🏻
+                      const heartEmoji = String.fromCodePoint(0x1F495); // 💕
+                      
+                      const pesanWA = `Halo Bunda, jangan lupa untuk melakukan daily check hari ini ya!`;
+                      
                       return (
                         <div key={patient.id} className="list-group-item d-flex align-items-center justify-content-between py-3 px-4">
                           <div className="d-flex align-items-center gap-3">
@@ -216,7 +224,8 @@ const MidwifeDashboardPage = () => {
                           <Button
                             variant="success"
                             size="sm"
-                            href={`https://wa.me/${cleanNumber}?text=Halo%20${encodeURIComponent(patient.name)},%20jangan%20lupa%20untuk%20melakukan%20daily%20check%20hari%20ini%20ya!`}
+                            // Kita bungkus pakai encodeURIComponent dengan aman
+                            href={`https://wa.me/${cleanNumber}?text=${encodeURIComponent(pesanWA)}`}
                             target="_blank"
                             className="fw-bold"
                           >

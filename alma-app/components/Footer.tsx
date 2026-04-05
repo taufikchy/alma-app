@@ -17,10 +17,10 @@ const Footer = () => {
           <div className="col-12 col-md-4">
             <h6 className="footer-title mb-2">Kontak</h6>
             <p className="text-muted mb-1 small">
-              <i className="bi bi-envelope me-2 text-alma-pink"></i>taufikcahyaramadhan@gmail.com
+              <i className="bi bi-envelope me-2 text-alma-pink"></i>dininurahmatikasalam@gmail.com
             </p>
             <p className="text-muted mb-0 small">
-              <i className="bi bi-telephone me-2 text-alma-pink"></i>+62 852 2545 7908
+              <i className="bi bi-telephone me-2 text-alma-pink"></i>+62 857 7843 0078
             </p>
           </div>
           <div className="col-12 col-md-4">
